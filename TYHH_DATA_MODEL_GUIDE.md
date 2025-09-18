@@ -7,6 +7,7 @@ Dự án TYHH có một cấu trúc dữ liệu phức tạp với 18+ bảng d�
 ## 🧑‍💼 User Management System
 
 ### Users (`users`)
+
 **Bảng trung tâm quản lý tất cả người dùng trong hệ thống**
 
 ```sql
@@ -37,6 +38,7 @@ CREATE TABLE users (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **User CRUD**: Create, Read, Update, Delete users
 - ✅ **Role Management**: Assign roles (admin, teacher, user)
 - ✅ **Account Status**: Active/inactive, ban/unban users
@@ -48,6 +50,7 @@ CREATE TABLE users (
 ## 📚 Course Management System
 
 ### Courses (`courses`)
+
 **Bảng chính quản lý tất cả khóa học**
 
 ```sql
@@ -72,6 +75,7 @@ CREATE TABLE courses (
 ```
 
 ### Course Outlines (`course-outline`)
+
 **Cấu trúc chương/bài học của khóa học**
 
 ```sql
@@ -87,6 +91,7 @@ CREATE TABLE course_outline (
 ```
 
 ### Topics (`topics`)
+
 **Quản lý chủ đề/tags cho khóa học**
 
 ```sql
@@ -101,6 +106,7 @@ CREATE TABLE topics (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **Course CRUD**: Full course management
 - ✅ **Content Management**: HTML editor for course content
 - ✅ **Media Management**: Thumbnails, intro videos
@@ -112,6 +118,7 @@ CREATE TABLE topics (
 ## 🎥 Livestream Management System
 
 ### Livestreams (`livestreams`)
+
 **Quản lý video bài giảng và livestream**
 
 ```sql
@@ -130,6 +137,7 @@ CREATE TABLE livestreams (
 ```
 
 ### View Tracking System
+
 **Hệ thống theo dõi người dùng xem video**
 
 ```sql
@@ -143,6 +151,7 @@ CREATE TABLE user_livestream (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **Video CRUD**: Upload, manage livestreams
 - ✅ **Video Analytics**: View counts, watch time
 - ✅ **Content Organization**: Assign to courses/outlines
@@ -152,6 +161,7 @@ CREATE TABLE user_livestream (
 ## 📄 Document Management System
 
 ### Documents (`documents`)
+
 **Quản lý tài liệu đi kèm bài giảng**
 
 ```sql
@@ -170,6 +180,7 @@ CREATE TABLE documents (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **Document CRUD**: Upload, manage documents
 - ✅ **VIP Content**: Manage premium documents
 - ✅ **Download Analytics**: Track download statistics
@@ -178,6 +189,7 @@ CREATE TABLE documents (
 ## 📊 Relationship Management
 
 ### Course-User Relationships (`course_user`)
+
 **Quản lý học viên đăng ký khóa học**
 
 ```sql
@@ -191,6 +203,7 @@ CREATE TABLE course_user (
 ```
 
 ### Course-Topic Relationships (`course_topic`)
+
 **Liên kết khóa học với chủ đề**
 
 ```sql
@@ -204,6 +217,7 @@ CREATE TABLE course_topic (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **Enrollment Management**: User course registrations
 - ✅ **Course Categorization**: Topic assignments
 - ✅ **Bulk Operations**: Mass enrollment/unenrollment
@@ -211,6 +225,7 @@ CREATE TABLE course_topic (
 ## 🔧 System Configuration
 
 ### Site Information (`site-info`)
+
 **Cài đặt hệ thống dạng key-value**
 
 ```sql
@@ -225,6 +240,7 @@ CREATE TABLE site_info (
 ```
 
 ### Social Links (`socials`)
+
 **Quản lý liên kết mạng xã hội**
 
 ```sql
@@ -239,6 +255,7 @@ CREATE TABLE socials (
 ```
 
 ### Cities (`cities`)
+
 **Danh sách thành phố**
 
 ```sql
@@ -251,6 +268,7 @@ CREATE TABLE cities (
 ```
 
 ### Schools (`schools`)
+
 **Danh sách trường học**
 
 ```sql
@@ -265,6 +283,7 @@ CREATE TABLE schools (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **System Settings**: Key-value configuration management
 - ✅ **Social Media**: Platform links management
 - ✅ **Geographic Data**: Cities and schools management
@@ -273,6 +292,7 @@ CREATE TABLE schools (
 ## 📢 Communication System
 
 ### Notifications (`notifications`)
+
 **Hệ thống thông báo**
 
 ```sql
@@ -288,6 +308,7 @@ CREATE TABLE notifications (
 ```
 
 ### User Notifications (`user_notification`)
+
 **Thông báo cá nhân cho từng user**
 
 ```sql
@@ -303,6 +324,7 @@ CREATE TABLE user_notification (
 ```
 
 ### Schedules (`schedules`)
+
 **Lịch học và thời khóa biểu**
 
 ```sql
@@ -317,6 +339,7 @@ CREATE TABLE schedules (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **Notification System**: Create, send notifications
 - ✅ **User Notifications**: Personal notification management
 - ✅ **Broadcast Messages**: System-wide announcements
@@ -325,6 +348,7 @@ CREATE TABLE schedules (
 ## 🚀 Advanced Features
 
 ### Queue System (`queue`)
+
 **Hệ thống xử lý background jobs**
 
 ```sql
@@ -341,6 +365,7 @@ CREATE TABLE queue (
 ```
 
 ### Refresh Tokens (`refresh_token`)
+
 **JWT refresh token management**
 
 ```sql
@@ -355,6 +380,7 @@ CREATE TABLE refresh_token (
 ```
 
 ### Slide Notes (`slidenote`)
+
 **Ghi chú slides cho bài giảng**
 
 ```sql
@@ -370,6 +396,7 @@ CREATE TABLE slidenote (
 ```
 
 **Admin Features cần quản lý:**
+
 - ✅ **Background Jobs**: Queue monitoring and management
 - ✅ **Token Management**: JWT/refresh token administration
 - ✅ **Slide Management**: Presentation slides for lectures
@@ -418,31 +445,37 @@ ALTER TABLE user_livestream ADD FOREIGN KEY (livestreamId) REFERENCES livestream
 ## 📱 Admin Interface Requirements
 
 ### Dashboard Overview
+
 **Key metrics và quick stats**
+
 - Total users, courses, livestreams
 - Recent activity feed
 - System health status
 - Popular content analytics
 
 ### User Management Interface
+
 - **User List**: Searchable, filterable table
 - **User Profile**: Detailed view với edit capabilities
 - **Role Management**: Role assignment interface
 - **Bulk Operations**: Mass actions (ban, export, etc.)
 
 ### Course Management Interface
+
 - **Course Builder**: WYSIWYG editor for course content
 - **Media Library**: Image/video upload và management
 - **Course Structure**: Drag-drop outline editor
 - **Enrollment Management**: Student registration tracking
 
 ### Content Management Interface
+
 - **Video Manager**: Upload, organize livestream content
 - **Document Library**: File upload với preview capabilities
 - **Analytics Dashboard**: View counts, engagement metrics
 - **Content Scheduling**: Publish/unpublish timing
 
 ### System Administration Interface
+
 - **Settings Panel**: Site configuration management
 - **Notification Center**: Create và send notifications
 - **Background Jobs**: Queue monitoring
@@ -451,12 +484,14 @@ ALTER TABLE user_livestream ADD FOREIGN KEY (livestreamId) REFERENCES livestream
 ## 🔐 Security Considerations
 
 ### Data Protection
+
 - **Soft Deletes**: Most tables có `deletedAt` for data recovery
 - **Password Security**: Bcrypt hashing với salt rounds
 - **JWT Security**: Refresh token rotation
 - **Role-based Access**: Admin, teacher, user permissions
 
 ### Audit Trail
+
 - **Timestamp Tracking**: All tables có `createdAt`, `updatedAt`
 - **User Actions**: Track admin actions for accountability
 - **Data Changes**: Log significant data modifications
@@ -464,6 +499,7 @@ ALTER TABLE user_livestream ADD FOREIGN KEY (livestreamId) REFERENCES livestream
 ## 📈 Performance Optimization
 
 ### Database Indexing Strategy
+
 ```sql
 -- Essential indexes for admin queries
 CREATE INDEX idx_users_email ON users(email);
@@ -475,6 +511,7 @@ CREATE INDEX idx_course_user_composite ON course_user(courseId, userId);
 ```
 
 ### Caching Strategy
+
 - **User Sessions**: Redis caching for active users
 - **Course Data**: Cache frequently accessed course information
 - **Site Settings**: Memory cache for site configuration
@@ -483,18 +520,21 @@ CREATE INDEX idx_course_user_composite ON course_user(courseId, userId);
 ## 🎯 Development Priorities
 
 ### Phase 1: Core Admin Features
+
 1. **User Management**: CRUD operations, role management
 2. **Course Management**: Basic course creation và editing
 3. **Content Upload**: Video và document management
 4. **System Settings**: Basic site configuration
 
 ### Phase 2: Advanced Features
+
 1. **Analytics Dashboard**: User engagement, content performance
 2. **Notification System**: Admin-to-user communication
 3. **Bulk Operations**: Mass data management tools
 4. **Advanced Search**: Full-text search across content
 
 ### Phase 3: Enterprise Features
+
 1. **Audit Logs**: Complete admin action tracking
 2. **Data Export**: CSV/Excel export capabilities
 3. **API Management**: External integrations
@@ -503,16 +543,17 @@ CREATE INDEX idx_course_user_composite ON course_user(courseId, userId);
 ## 📚 Data Migration & Seeding
 
 ### Sample Data Structure
+
 ```javascript
 // Users seed data
 const users = [
   {
-    email: 'admin@tyhh.com',
-    username: 'admin',
-    name: 'System Administrator',
-    role: 'admin',
+    email: "admin@tyhh.com",
+    username: "admin",
+    name: "System Administrator",
+    role: "admin",
     activeKey: true,
-    verifiedAt: new Date()
+    verifiedAt: new Date(),
   },
   // More sample users...
 ];
@@ -520,18 +561,19 @@ const users = [
 // Courses seed data
 const courses = [
   {
-    title: 'Vận Dụng Cao 9+',
-    slug: 'van-dung-cao-9-plus',
+    title: "Vận Dụng Cao 9+",
+    slug: "van-dung-cao-9-plus",
     teacherId: 1,
     isFree: false,
     price: 1500000,
-    description: 'Khóa học nâng cao...'
+    description: "Khóa học nâng cao...",
   },
   // More sample courses...
 ];
 ```
 
 ### Migration Scripts
+
 - **Initial Setup**: Create all tables với proper constraints
 - **Data Seeding**: Populate với sample data for testing
 - **Index Creation**: Add performance indexes
