@@ -1,7 +1,5 @@
-import { useEffect } from 'react';
 import { useAuth, useAppDispatch } from '@/lib/hooks/redux';
 import { 
-  getCurrentUser, 
   loginUser, 
   logoutUser, 
   registerUser, 
@@ -19,28 +17,7 @@ export const useAuthActions = () => {
   const dispatch = useAppDispatch();
   const auth = useAuth();
 
-  // Initialize auth on mount
-  useEffect(() => {
-    const initAuth = async () => {
-      // With cookies, check if user exists in session by calling /auth/me
-      if (typeof window !== 'undefined' && !auth.user) {
-        try {
-          await dispatch(getCurrentUser()).unwrap();
-        } catch {
-          // If getting current user fails, try to refresh token
-          try {
-            await dispatch(refreshAuthToken()).unwrap();
-            await dispatch(getCurrentUser()).unwrap();
-          } catch {
-            // If refresh also fails, clear auth
-            dispatch(clearAuth());
-          }
-        }
-      }
-    };
-
-    initAuth();
-  }, [dispatch, auth.user]);
+  // No initialization logic here - handled by UserProvider like TYHH MUI
 
   const login = async (credentials: LoginCredentials) => {
     try {

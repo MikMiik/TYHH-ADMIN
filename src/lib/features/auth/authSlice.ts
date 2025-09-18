@@ -176,11 +176,12 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.error = null;
       })
-      .addCase(getCurrentUser.rejected, (state, action) => {
+      .addCase(getCurrentUser.rejected, (state) => {
         state.isLoading = false;
         state.user = null;
         state.isAuthenticated = false;
-        state.error = (action.payload as ApiError).message;
+        // Don't set error for getCurrentUser rejection like TYHH MUI
+        // This prevents infinite loops on initial load
       })
 
       // Login User

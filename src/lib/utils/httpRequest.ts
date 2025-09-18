@@ -66,9 +66,7 @@ class HttpRequest {
               this.isRefreshing = false;
               this.tokenListeners = [];
               // Cookies will be cleared by backend on error
-              if (typeof window !== 'undefined') {
-                window.location.href = '/auth/login';
-              }
+              // Don't redirect here to avoid infinite loops like TYHH MUI
             }
           } else {
             // trong khi api đầu tiên refresh, các api lỗi khác sẽ vào đây
