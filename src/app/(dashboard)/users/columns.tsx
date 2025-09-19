@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,17 +12,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import {
+  ArrowUpDown,
+  MoreHorizontal,
+  Shield,
+  User,
+  UserCheck,
+} from "lucide-react";
+import { User as UserType } from "@/lib/types/auth";
+import { format } from "date-fns";
+import Link from "next/link";
+import Image from "next/image";
 
-export type Payment = {
-  id: string;
-  amount: number;
-  username: string;
-  email: string;
-  status: "pending" | "processing" | "success" | "failed";
-};
-
-export const columns: ColumnDef<Payment>[] = [
+// User columns definition
+export const userColumns: ColumnDef<UserType>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -46,8 +49,49 @@ export const columns: ColumnDef<Payment>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "username",
-    header: "User",
+    accessorKey: "name",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const user = row.original;
+      return (
+        <div className="flex items-center space-x-2">
+          {user.avatar ? (
+            <Image
+              src={user.avatar}
+              alt={user.name}
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+              <User className="h-4 w-4" />
+            </div>
+          )}
+          <div>
+            <Link
+              href={`/users/${user.username}`}
+              className="font-medium hover:underline cursor-pointer"
+            >
+              {user.name}
+            </Link>
+            <div className="text-sm text-muted-foreground">
+              @{user.username}
+            </div>
+          </div>
+        </div>
+      );
+    },
   },
   {
     accessorKey: "email",
@@ -62,44 +106,89 @@ export const columns: ColumnDef<Payment>[] = [
         </Button>
       );
     },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
     cell: ({ row }) => {
-      const status = row.getValue("status");
-
+      const user = row.original;
       return (
-        <div
-          className={cn(
-            `p-1 rounded-md w-max text-xs`,
-            status === "pending" && "bg-yellow-500/40",
-            status === "success" && "bg-green-500/40",
-            status === "failed" && "bg-red-500/40"
-          )}
-        >
-          {status as string}
+        <div className="flex items-center space-x-2">
+          <span>{user.email}</span>
+          {user.verifiedAt && <UserCheck className="h-4 w-4 text-green-600" />}
         </div>
       );
     },
   },
   {
-    accessorKey: "amount",
-    header: () => <div className="text-right">Amount</div>,
+    accessorKey: "role",
+    header: "Role",
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(amount);
-
-      return <div className="text-right font-medium">{formatted}</div>;
+      const role = row.getValue("role") as string;
+      return (
+        <Badge
+          variant={
+            role === "admin"
+              ? "destructive"
+              : role === "teacher"
+              ? "secondary"
+              : "outline"
+          }
+        >
+          {role === "admin" && <Shield className="mr-1 h-3 w-3" />}
+          {role.charAt(0).toUpperCase() + role.slice(1)}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      const user = row.original;
+      const isActive = user.activeKey;
+      return (
+        <Badge variant={isActive ? "default" : "secondary"}>
+          {isActive ? "Active" : "Inactive"}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "point",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Points
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const points = parseFloat(row.getValue("point"));
+      return (
+        <div className="text-right font-mono">{points.toLocaleString()}</div>
+      );
+    },
+  },
+  {
+    accessorKey: "lastLogin",
+    header: "Last Login",
+    cell: ({ row }) => {
+      const lastLogin = row.getValue("lastLogin") as Date | null;
+      if (!lastLogin)
+        return <span className="text-muted-foreground">Never</span>;
+      return (
+        <span className="text-sm">
+          {format(new Date(lastLogin), "MMM dd, yyyy")}
+        </span>
+      );
     },
   },
   {
     id: "actions",
+    enableHiding: false,
     cell: ({ row }) => {
-      const payment = row.original;
+      const user = row.original;
 
       return (
         <DropdownMenu>
@@ -112,13 +201,17 @@ export const columns: ColumnDef<Payment>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
+              onClick={() => navigator.clipboard.writeText(user.email)}
             >
-              Copy payment ID
+              Copy email address
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
+            <DropdownMenuItem>View details</DropdownMenuItem>
+            <DropdownMenuItem>Edit user</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive">
+              {user.activeKey ? "Deactivate" : "Activate"} user
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

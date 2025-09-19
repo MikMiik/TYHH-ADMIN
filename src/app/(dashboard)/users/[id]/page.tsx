@@ -54,7 +54,7 @@ type UserFormData = {
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const username = params.username as string;
+  const userId = params.id as string;
 
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
