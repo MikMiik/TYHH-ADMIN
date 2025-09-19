@@ -16,6 +16,8 @@ export const baseApi = createApi({
     'Course', 
     'Livestream', 
     'Document', 
+    'DocumentCategory',
+    'DocumentAnalytics',
     'Notification', 
     'SiteInfo',
     'Topic',

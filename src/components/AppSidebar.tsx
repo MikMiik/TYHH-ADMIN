@@ -5,9 +5,7 @@ import {
   Users,
   BookOpen,
   Video,
-  Bell,
-  Settings,
-  BarChart3,
+  FileText,
   User2,
   ChevronUp,
   ChevronDown,
@@ -83,7 +81,7 @@ const AppSidebar = () => {
     return user.name || user.username || "Admin";
   };
 
-  // Admin Menu Structure based on TYHH Data Model
+  // Admin Menu Structure - Only implemented pages
   const menuGroups: MenuGroup[] = [
     {
       label: "Main",
@@ -102,73 +100,21 @@ const AppSidebar = () => {
           title: "User Management",
           url: "/users",
           icon: Users,
-          children: [
-            { title: "All Users", url: "/users" },
-            { title: "Roles & Permissions", url: "/users/roles" },
-            { title: "Account Status", url: "/users/status" },
-            { title: "Login Sessions", url: "/users/sessions" },
-          ],
         },
         {
           title: "Course Management",
           url: "/courses",
           icon: BookOpen,
-          children: [
-            { title: "All Courses", url: "/courses" },
-            { title: "Course Builder", url: "/courses/builder" },
-            { title: "Topics & Tags", url: "/courses/topics" },
-            { title: "Enrollments", url: "/courses/enrollments" },
-            { title: "Teacher Assignment", url: "/courses/teachers" },
-          ],
         },
         {
-          title: "Content Management",
-          url: "/content",
+          title: "Livestream Management",
+          url: "/livestreams",
           icon: Video,
-          children: [
-            { title: "Livestreams", url: "/content/livestreams" },
-            { title: "Documents", url: "/content/documents" },
-            { title: "View Analytics", url: "/content/analytics" },
-            { title: "Slide Notes", url: "/content/slides" },
-          ],
-        },
-      ],
-    },
-    {
-      label: "System",
-      items: [
-        {
-          title: "Communication",
-          url: "/communication",
-          icon: Bell,
-          children: [
-            { title: "Notifications", url: "/communication/notifications" },
-            { title: "User Messages", url: "/communication/messages" },
-            { title: "Schedules", url: "/communication/schedules" },
-            { title: "Broadcast", url: "/communication/broadcast" },
-          ],
         },
         {
-          title: "System Settings",
-          url: "/settings",
-          icon: Settings,
-          children: [
-            { title: "Site Configuration", url: "/settings/site" },
-            { title: "Social Links", url: "/settings/social" },
-            { title: "Geographic Data", url: "/settings/locations" },
-            { title: "Background Jobs", url: "/settings/queue" },
-          ],
-        },
-        {
-          title: "Analytics & Reports",
-          url: "/analytics",
-          icon: BarChart3,
-          children: [
-            { title: "User Analytics", url: "/analytics/users" },
-            { title: "Course Performance", url: "/analytics/courses" },
-            { title: "Revenue Reports", url: "/analytics/revenue" },
-            { title: "System Reports", url: "/analytics/system" },
-          ],
+          title: "Document Library",
+          url: "/documents",
+          icon: FileText,
         },
       ],
     },

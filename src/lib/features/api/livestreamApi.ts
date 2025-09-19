@@ -1,0 +1,198 @@
+import { baseApi, ApiResponse } from './baseApi';
+
+// Types cho Livestream API  
+export interface Livestream {
+  id: number;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  streamKey?: string;
+  streamUrl?: string;
+  startTime?: string;
+  endTime?: string;
+  status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  viewCount?: number;
+  maxViewers?: number;
+  isRecorded?: boolean;
+  recordingUrl?: string;
+  teacherId: number;
+  teacher?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  courseId?: number;
+  course?: {
+    id: number;
+    title: string;
+    slug: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
+}
+
+interface LivestreamsListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  teacherId?: number;
+  courseId?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface LivestreamsListResponse {
+  livestreams: Livestream[];
+  total: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+interface CreateLivestreamData {
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  startTime?: string;
+  endTime?: string;
+  teacherId: number;
+  courseId?: number;
+}
+
+export const livestreamApi = baseApi.injectEndpoints({
+  endpoints: (builder) => ({
+    // Lấy danh sách livestreams với pagination và filters
+    getLivestreams: builder.query<LivestreamsListResponse, LivestreamsListParams>({
+      query: (params = {}) => ({
+        url: '/admin/livestreams',
+        params,
+      }),
+      transformResponse: (response: ApiResponse<LivestreamsListResponse>) => 
+        response.data || { livestreams: [], total: 0, currentPage: 1, totalPages: 0 },
+      providesTags: ['Livestream'],
+    }),
+
+    // Lấy thông tin chi tiết 1 livestream
+    getLivestream: builder.query<Livestream, number | string>({
+      query: (id) => `/admin/livestreams/${id}`,
+      transformResponse: (response: ApiResponse<Livestream>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Livestream not found');
+        }
+        return response.data;
+      },
+      providesTags: (result, error, id) => [{ type: 'Livestream', id }],
+    }),
+
+    // Tạo livestream mới
+    createLivestream: builder.mutation<Livestream, CreateLivestreamData>({
+      query: (data) => ({
+        url: '/admin/livestreams',
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Livestream>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to create livestream');
+        }
+        return response.data;
+      },
+      invalidatesTags: ['Livestream'],
+    }),
+
+    // Cập nhật thông tin livestream
+    updateLivestream: builder.mutation<Livestream, { id: number; data: Partial<CreateLivestreamData> }>({
+      query: ({ id, data }) => ({
+        url: `/admin/livestreams/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Livestream>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update livestream');
+        }
+        return response.data;
+      },
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Livestream', id },
+        'Livestream',
+      ],
+    }),
+
+    // Xóa livestream
+    deleteLivestream: builder.mutation<{ message: string }, number>({
+      query: (id) => ({
+        url: `/admin/livestreams/${id}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (response: ApiResponse<{ message: string }>) => {
+        return response.data || { message: response.message || 'Livestream deleted successfully' };
+      },
+      invalidatesTags: (result, error, id) => [
+        { type: 'Livestream', id },
+        'Livestream',
+      ],
+    }),
+
+    // Cập nhật status livestream
+    updateLivestreamStatus: builder.mutation<
+      Livestream, 
+      { id: number; status: 'scheduled' | 'live' | 'ended' | 'cancelled' }
+    >({
+      query: ({ id, status }) => ({
+        url: `/admin/livestreams/${id}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      transformResponse: (response: ApiResponse<Livestream>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update livestream status');
+        }
+        return response.data;
+      },
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Livestream', id },
+        'Livestream',
+      ],
+    }),
+
+    // Lấy analytics livestream
+    getLivestreamAnalytics: builder.query<{
+      totalLivestreams: number;
+      liveLivestreams: number;
+      scheduledLivestreams: number;
+      totalViews: number;
+      averageViewTime: number;
+    }, void>({
+      query: () => '/admin/livestreams/analytics',
+      transformResponse: (response: ApiResponse<{
+        totalLivestreams: number;
+        liveLivestreams: number;
+        scheduledLivestreams: number;
+        totalViews: number;
+        averageViewTime: number;
+      }>) => {
+        return response.data || {
+          totalLivestreams: 0,
+          liveLivestreams: 0,
+          scheduledLivestreams: 0,
+          totalViews: 0,
+          averageViewTime: 0,
+        };
+      },
+      providesTags: ['Livestream'],
+    }),
+  }),
+});
+
+// Export hooks
+export const {
+  useGetLivestreamsQuery,
+  useGetLivestreamQuery,
+  useCreateLivestreamMutation,
+  useUpdateLivestreamMutation,
+  useDeleteLivestreamMutation,
+  useUpdateLivestreamStatusMutation,
+  useGetLivestreamAnalyticsQuery,
+} = livestreamApi;
