@@ -2,12 +2,11 @@ import { useAuth, useAppDispatch } from '@/lib/hooks/redux';
 import { 
   loginUser, 
   logoutUser, 
-  registerUser, 
   clearError, 
   clearAuth,
   refreshAuthToken 
 } from '@/lib/features/auth/authSlice';
-import { LoginCredentials, RegisterCredentials } from '@/lib/types/auth';
+import { LoginCredentials } from '@/lib/types/auth';
 
 /**
  * Custom hook for authentication operations
@@ -27,18 +26,6 @@ export const useAuthActions = () => {
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Login failed' 
-      };
-    }
-  };
-
-  const register = async (credentials: RegisterCredentials) => {
-    try {
-      const result = await dispatch(registerUser(credentials)).unwrap();
-      return { success: true, data: result };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Registration failed' 
       };
     }
   };
@@ -81,7 +68,6 @@ export const useAuthActions = () => {
     
     // Actions
     login,
-    register,
     logout,
     refreshToken,
     clearError: clearAuthError,

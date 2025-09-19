@@ -36,15 +36,6 @@ export interface LoginResponse {
   };
 }
 
-export interface RegisterCredentials {
-  email: string;
-  username: string;
-  name: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-}
-
 export interface AuthState {
   user: User | null;
   isLoading: boolean;

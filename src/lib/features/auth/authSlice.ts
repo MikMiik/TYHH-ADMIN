@@ -1,9 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+﻿import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import authService from '@/lib/services/authService';
 import {
   AuthState,
   LoginCredentials,
-  RegisterCredentials,
   ApiError,
 } from '@/lib/types/auth';
 
@@ -66,27 +65,6 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-export const registerUser = createAsyncThunk(
-  'auth/registerUser',
-  async (credentials: RegisterCredentials, { rejectWithValue }) => {
-    try {
-      const response = await authService.register(credentials);
-      if (response.success && response.data) {
-        return response.data;
-      } else {
-        return rejectWithValue({
-          message: response.message || 'Registration failed',
-        } as ApiError);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
-      return rejectWithValue({
-        message: errorMessage,
-      } as ApiError);
-    }
-  }
-);
-
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
   async (_, { rejectWithValue }) => {
@@ -123,28 +101,7 @@ export const refreshAuthToken = createAsyncThunk(
   }
 );
 
-export const googleLogin = createAsyncThunk(
-  'auth/googleLogin',
-  async (token: string, { rejectWithValue }) => {
-    try {
-      const response = await authService.googleLogin(token);
-      if (response.success && response.data) {
-        return response.data;
-      } else {
-        return rejectWithValue({
-          message: response.message || 'Google login failed',
-        } as ApiError);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Google login failed';
-      return rejectWithValue({
-        message: errorMessage,
-      } as ApiError);
-    }
-  }
-);
-
-// Auth slice
+// Slice
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -202,24 +159,6 @@ const authSlice = createSlice({
         state.error = (action.payload as ApiError).message;
       })
 
-      // Register User
-      .addCase(registerUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.user = null;
-        state.isAuthenticated = false;
-        state.error = (action.payload as ApiError).message;
-      })
-
       // Logout User
       .addCase(logoutUser.pending, (state) => {
         state.isLoading = true;
@@ -255,30 +194,9 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.error = (action.payload as ApiError).message;
-      })
-
-      // Google Login
-      .addCase(googleLogin.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(googleLogin.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload;
-        state.isAuthenticated = true;
-        state.error = null;
-      })
-      .addCase(googleLogin.rejected, (state, action) => {
-        state.isLoading = false;
-        state.user = null;
-        state.isAuthenticated = false;
-        state.error = (action.payload as ApiError).message;
       });
   },
 });
 
-// Export actions
 export const { clearError, setLoading, clearAuth } = authSlice.actions;
-
-// Export reducer
 export default authSlice.reducer;
