@@ -1,31 +1,22 @@
 import { baseApi, ApiResponse } from './baseApi';
 
-// Types cho Livestream API  
+// Types cho Livestream API theo BE model thực tế  
 export interface Livestream {
   id: number;
   title: string;
-  description?: string;
-  thumbnail?: string;
-  streamKey?: string;
-  streamUrl?: string;
-  startTime?: string;
-  endTime?: string;
-  status: 'scheduled' | 'live' | 'ended' | 'cancelled';
-  viewCount?: number;
-  maxViewers?: number;
-  isRecorded?: boolean;
-  recordingUrl?: string;
-  teacherId: number;
-  teacher?: {
-    id: number;
-    name: string;
-    email: string;
-  };
-  courseId?: number;
+  slug: string;
+  courseId: number;
+  courseOutlineId: number;
+  url?: string;                        // Video URL
+  view: number;                        // View count (BIGINT)
   course?: {
     id: number;
     title: string;
     slug: string;
+  };
+  courseOutline?: {
+    id: number;
+    title: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -36,9 +27,8 @@ interface LivestreamsListParams {
   page?: number;
   limit?: number;
   search?: string;
-  status?: 'scheduled' | 'live' | 'ended' | 'cancelled';
-  teacherId?: number;
   courseId?: number;
+  courseOutlineId?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -52,12 +42,10 @@ interface LivestreamsListResponse {
 
 interface CreateLivestreamData {
   title: string;
-  description?: string;
-  thumbnail?: string;
-  startTime?: string;
-  endTime?: string;
-  teacherId: number;
-  courseId?: number;
+  slug?: string;
+  courseId: number;
+  courseOutlineId: number;
+  url?: string;
 }
 
 export const livestreamApi = baseApi.injectEndpoints({

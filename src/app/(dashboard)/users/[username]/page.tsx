@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
-  useGetUserQuery,
+  useGetUserByUsernameQuery,
   useUpdateUserMutation,
   useToggleUserStatusMutation,
 } from "@/lib/features/api/userApi";
@@ -54,7 +54,7 @@ type UserFormData = {
 export default function UserDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const userId = params.id as string;
+  const username = params.username as string;
 
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
@@ -75,7 +75,7 @@ export default function UserDetailPage() {
     data: user,
     isLoading: isLoadingUser,
     error: userError,
-  } = useGetUserQuery(userId);
+  } = useGetUserByUsernameQuery(username);
 
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
@@ -144,8 +144,12 @@ export default function UserDetailPage() {
         updateData.password = formData.password;
       }
 
+      if (!user?.id) {
+        throw new Error("User ID not available");
+      }
+
       await updateUser({
-        id: userId,
+        id: user.id,
         data: updateData,
       }).unwrap();
 
@@ -168,9 +172,11 @@ export default function UserDetailPage() {
   };
 
   const handleToggleStatus = async () => {
+    if (!user?.id) return;
+
     try {
       await toggleUserStatus({
-        id: userId,
+        id: user.id,
         activeKey: !formData.activeKey,
       }).unwrap();
 

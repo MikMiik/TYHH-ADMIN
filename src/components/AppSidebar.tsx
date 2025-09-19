@@ -6,6 +6,8 @@ import {
   BookOpen,
   Video,
   FileText,
+  BarChart3,
+  Settings,
   User2,
   ChevronUp,
   ChevronDown,
@@ -115,6 +117,26 @@ const AppSidebar = () => {
           title: "Document Library",
           url: "/documents",
           icon: FileText,
+        },
+      ],
+    },
+    {
+      label: "Analytics",
+      items: [
+        {
+          title: "Content Analytics",
+          url: "/analytics",
+          icon: BarChart3,
+        },
+      ],
+    },
+    {
+      label: "System",
+      items: [
+        {
+          title: "System Administration",
+          url: "/system",
+          icon: Settings,
         },
       ],
     },

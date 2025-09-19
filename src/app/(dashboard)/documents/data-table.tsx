@@ -69,13 +69,16 @@ export function DocumentDataTable<TData, TValue>({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // Apply status filter
+  // Apply VIP filter instead of status (since BE model doesn't have status)
   const filteredData =
     statusFilter === "all"
       ? data
-      : data.filter(
-          (item: TData) => (item as Document).status === statusFilter
-        );
+      : data.filter((item: TData) => {
+          const doc = item as Document;
+          if (statusFilter === "vip") return doc.vip;
+          if (statusFilter === "public") return !doc.vip;
+          return true;
+        });
 
   const table = useReactTable({
     data: filteredData,
@@ -90,8 +93,9 @@ export function DocumentDataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     globalFilterFn: (row) => {
       const document = row.original as Document;
-      const searchableText =
-        `${document.title} ${document.description} ${document.originalName} ${document.uploadedBy?.name}`.toLowerCase();
+      const searchableText = `${document.title || ""} ${
+        document.slug || ""
+      }`.toLowerCase();
       return searchableText.includes(globalFilter.toLowerCase());
     },
     state: {

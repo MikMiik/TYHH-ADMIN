@@ -1,143 +1,104 @@
-import { baseApi } from "./baseApi";
+import { baseApi, ApiResponse } from "./baseApi";
 
-// Document interfaces
+// Document interfaces theo BE model thực tế
 export interface Document {
   id: number;
-  title: string;
-  description: string | null;
-  fileName: string;
-  originalName: string;
-  filePath: string;
-  fileSize: number;
-  mimeType: string;
-  category: DocumentCategory;
-  course: {
+  livestreamId?: number;
+  vip: boolean;                        // VIP-only document
+  title?: string;
+  slug?: string;
+  downloadCount: number;
+  thumbnail?: string;                  // Document preview image
+  livestream?: {
     id: number;
     title: string;
-  } | null;
-  isPublic: boolean;
-  downloadCount: number;
-  version: string;
-  status: "active" | "archived" | "deleted";
-  uploadedBy: {
-    id: number;
-    name: string;
-    email: string;
+    slug: string;
   };
   createdAt: string;
   updatedAt: string;
-}
-
-export interface DocumentCategory {
-  id: number;
-  name: string;
-  slug: string;
-  description: string | null;
-  documentCount: number;
+  deletedAt?: string;
 }
 
 export interface DocumentsListParams {
   page?: number;
   limit?: number;
   search?: string;
-  category?: string;
-  status?: "active" | "archived" | "deleted" | "all";
-  courseId?: number;
-  sortBy?: "title" | "createdAt" | "downloadCount" | "fileSize";
+  vip?: boolean;
+  livestreamId?: number;
+  sortBy?: "title" | "createdAt" | "downloadCount";
   sortOrder?: "asc" | "desc";
 }
 
 export interface DocumentsListResponse {
   documents: Document[];
   total: number;
-  totalPages: number;
   currentPage: number;
-  hasNext: boolean;
-  hasPrev: boolean;
+  totalPages: number;
 }
 
-export interface DocumentAnalytics {
-  totalDocuments: number;
-  totalDownloads: number;
-  totalFileSize: number;
-  documentsByCategory: Array<{
-    category: string;
-    count: number;
-  }>;
-  recentUploads: number;
-  popularDocuments: Array<{
-    id: number;
-    title: string;
-    downloadCount: number;
-  }>;
-}
-
-export interface CreateDocumentData {
-  title: string;
-  description?: string;
-  file: File;
-  categoryId: number;
-  courseId?: number;
-  isPublic: boolean;
-  version: string;
-}
-
-export interface UpdateDocumentData {
+interface CreateDocumentData {
+  livestreamId?: number;
+  vip?: boolean;
   title?: string;
-  description?: string;
-  categoryId?: number;
-  courseId?: number;
-  isPublic?: boolean;
-  version?: string;
-  status?: "active" | "archived" | "deleted";
+  slug?: string;
+  thumbnail?: string;
+}
+
+interface UpdateDocumentData {
+  livestreamId?: number;
+  vip?: boolean;
+  title?: string;
+  slug?: string;
+  thumbnail?: string;
 }
 
 export const documentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // Get documents list with pagination and filters
+    // Get all documents with pagination
     getDocuments: builder.query<DocumentsListResponse, DocumentsListParams>({
-      query: (params) => ({
+      query: (params = {}) => ({
         url: "/admin/documents",
         params: {
           page: params.page || 1,
           limit: params.limit || 10,
           ...(params.search && { search: params.search }),
-          ...(params.category && { category: params.category }),
-          ...(params.status && params.status !== "all" && { status: params.status }),
-          ...(params.courseId && { courseId: params.courseId }),
+          ...(params.vip !== undefined && { vip: params.vip }),
+          ...(params.livestreamId && { livestreamId: params.livestreamId }),
           ...(params.sortBy && { sortBy: params.sortBy }),
           ...(params.sortOrder && { sortOrder: params.sortOrder }),
         },
       }),
+      transformResponse: (response: ApiResponse<DocumentsListResponse>) => 
+        response.data || { documents: [], total: 0, currentPage: 1, totalPages: 0 },
       providesTags: ["Document"],
     }),
 
     // Get single document by ID
     getDocument: builder.query<Document, number>({
       query: (id) => `/admin/documents/${id}`,
+      transformResponse: (response: ApiResponse<Document>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Document not found');
+        }
+        return response.data;
+      },
       providesTags: (result, error, id) => [{ type: "Document", id }],
     }),
 
-    // Get document categories
-    getDocumentCategories: builder.query<DocumentCategory[], void>({
-      query: () => "/admin/documents/categories",
-      providesTags: ["DocumentCategory"],
-    }),
-
-    // Get document analytics
-    getDocumentAnalytics: builder.query<DocumentAnalytics, void>({
-      query: () => "/admin/documents/analytics",
-      providesTags: ["DocumentAnalytics"],
-    }),
-
-    // Upload new document
-    createDocument: builder.mutation<Document, FormData>({
-      query: (formData) => ({
+    // Create new document
+    createDocument: builder.mutation<Document, CreateDocumentData>({
+      query: (data) => ({
         url: "/admin/documents",
         method: "POST",
-        body: formData,
+        body: data,
       }),
-      invalidatesTags: ["Document", "DocumentAnalytics", "DocumentCategory"],
+      transformResponse: (response: ApiResponse<Document>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to create document');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["Document"],
     }),
 
     // Update document
@@ -147,10 +108,15 @@ export const documentApi = baseApi.injectEndpoints({
         method: "PUT",
         body: data,
       }),
+      transformResponse: (response: ApiResponse<Document>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update document');
+        }
+        return response.data;
+      },
       invalidatesTags: (result, error, { id }) => [
         { type: "Document", id },
         "Document",
-        "DocumentAnalytics",
       ],
     }),
 
@@ -160,62 +126,28 @@ export const documentApi = baseApi.injectEndpoints({
         url: `/admin/documents/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Document", "DocumentAnalytics", "DocumentCategory"],
+      invalidatesTags: (result, error, id) => [
+        { type: "Document", id },
+        "Document",
+      ],
     }),
 
-    // Download document (track download count)
-    downloadDocument: builder.mutation<{ downloadUrl: string }, number>({
+    // Increment download count
+    incrementDownloadCount: builder.mutation<Document, number>({
       query: (id) => ({
         url: `/admin/documents/${id}/download`,
         method: "POST",
       }),
+      transformResponse: (response: ApiResponse<Document>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to track download');
+        }
+        return response.data;
+      },
       invalidatesTags: (result, error, id) => [
         { type: "Document", id },
-        "DocumentAnalytics",
-      ],
-    }),
-
-    // Toggle document status (archive/activate)
-    toggleDocumentStatus: builder.mutation<Document, { id: number; status: "active" | "archived" }>({
-      query: ({ id, status }) => ({
-        url: `/admin/documents/${id}/status`,
-        method: "PATCH",
-        body: { status },
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: "Document", id },
         "Document",
-        "DocumentAnalytics",
       ],
-    }),
-
-    // Create document category
-    createDocumentCategory: builder.mutation<DocumentCategory, { name: string; description?: string }>({
-      query: (data) => ({
-        url: "/admin/documents/categories",
-        method: "POST",
-        body: data,
-      }),
-      invalidatesTags: ["DocumentCategory"],
-    }),
-
-    // Update document category
-    updateDocumentCategory: builder.mutation<DocumentCategory, { id: number; data: { name?: string; description?: string } }>({
-      query: ({ id, data }) => ({
-        url: `/admin/documents/categories/${id}`,
-        method: "PUT",
-        body: data,
-      }),
-      invalidatesTags: ["DocumentCategory"],
-    }),
-
-    // Delete document category
-    deleteDocumentCategory: builder.mutation<void, number>({
-      query: (id) => ({
-        url: `/admin/documents/categories/${id}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: ["DocumentCategory"],
     }),
   }),
 });
@@ -223,14 +155,8 @@ export const documentApi = baseApi.injectEndpoints({
 export const {
   useGetDocumentsQuery,
   useGetDocumentQuery,
-  useGetDocumentCategoriesQuery,
-  useGetDocumentAnalyticsQuery,
   useCreateDocumentMutation,
   useUpdateDocumentMutation,
   useDeleteDocumentMutation,
-  useDownloadDocumentMutation,
-  useToggleDocumentStatusMutation,
-  useCreateDocumentCategoryMutation,
-  useUpdateDocumentCategoryMutation,
-  useDeleteDocumentCategoryMutation,
+  useIncrementDownloadCountMutation,
 } = documentApi;

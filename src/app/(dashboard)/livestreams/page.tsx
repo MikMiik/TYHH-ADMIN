@@ -38,7 +38,7 @@ import {
 export default function LivestreamsPage() {
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "scheduled" | "live" | "ended" | "cancelled" | "all"
+    "with-course" | "no-course" | "all"
   >("all");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -53,7 +53,12 @@ export default function LivestreamsPage() {
     page,
     limit,
     search: searchValue || undefined,
-    status: statusFilter && statusFilter !== "all" ? statusFilter : undefined,
+    courseId:
+      statusFilter === "with-course"
+        ? undefined
+        : statusFilter === "no-course"
+        ? 0
+        : undefined,
   });
 
   const { data: analytics } = useGetLivestreamAnalyticsQuery();
@@ -178,20 +183,16 @@ export default function LivestreamsPage() {
             <Select
               value={statusFilter}
               onValueChange={(value) =>
-                setStatusFilter(
-                  value as "scheduled" | "live" | "ended" | "cancelled" | "all"
-                )
+                setStatusFilter(value as "with-course" | "no-course" | "all")
               }
             >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="live">Live</SelectItem>
-                <SelectItem value="ended">Ended</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="with-course">With Course</SelectItem>
+                <SelectItem value="no-course">No Course</SelectItem>
               </SelectContent>
             </Select>
 

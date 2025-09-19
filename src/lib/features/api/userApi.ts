@@ -64,6 +64,18 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: (result, error, id) => [{ type: 'User', id }],
     }),
 
+    // Lấy thông tin chi tiết user theo username
+    getUserByUsername: builder.query<User, string>({
+      query: (username) => `/admin/users/username/${username}`,
+      transformResponse: (response: ApiResponse<User>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'User not found');
+        }
+        return response.data;
+      },
+      providesTags: (result, error, username) => [{ type: 'User', id: username }],
+    }),
+
     // Tạo user mới
     createUser: builder.mutation<User, Partial<User>>({
       query: (userData) => ({
@@ -140,6 +152,7 @@ export const userApi = baseApi.injectEndpoints({
 export const {
   useGetUsersQuery,
   useGetUserQuery,
+  useGetUserByUsernameQuery,
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,

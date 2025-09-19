@@ -18,13 +18,15 @@ export const baseApi = createApi({
     'Document', 
     'DocumentCategory',
     'DocumentAnalytics',
+    'Analytics',
     'Notification', 
     'SiteInfo',
     'Topic',
     'Schedule',
     'City',
     'School',
-    'Social'
+    'Social',
+    'Job'
   ],
   endpoints: () => ({}),
 });

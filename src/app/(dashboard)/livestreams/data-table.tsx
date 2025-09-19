@@ -69,13 +69,17 @@ export function LivestreamDataTable<TData, TValue>({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [globalFilter, setGlobalFilter] = useState("");
 
-  // Apply status filter
+  // Apply course filter instead of status (since BE model doesn't have status)
   const filteredData =
     statusFilter === "all"
       ? data
-      : data.filter(
-          (item: TData) => (item as Livestream).status === statusFilter
-        );
+      : data.filter((item: TData) => {
+          const livestream = item as Livestream;
+          // Since BE doesn't have status, we can filter by course existence
+          if (statusFilter === "with-course") return !!livestream.course;
+          if (statusFilter === "no-course") return !livestream.course;
+          return true;
+        });
 
   const table = useReactTable({
     data: filteredData,
@@ -90,8 +94,9 @@ export function LivestreamDataTable<TData, TValue>({
     onRowSelectionChange: setRowSelection,
     globalFilterFn: (row) => {
       const livestream = row.original as Livestream;
-      const searchableText =
-        `${livestream.title} ${livestream.description} ${livestream.teacher?.name} ${livestream.course?.title}`.toLowerCase();
+      const searchableText = `${livestream.title} ${livestream.slug || ""} ${
+        livestream.course?.title || ""
+      }`.toLowerCase();
       return searchableText.includes(globalFilter.toLowerCase());
     },
     state: {

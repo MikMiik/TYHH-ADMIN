@@ -31,16 +31,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import {
-  useGetDocumentsQuery,
-  useGetDocumentAnalyticsQuery,
-} from "@/lib/features/api/documentApi";
+import { useGetDocumentsQuery, Document } from "@/lib/features/api/documentApi";
 
 export default function DocumentsPage() {
   const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "active" | "archived" | "deleted" | "all"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"vip" | "public" | "all">(
+    "all"
+  );
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -55,12 +52,22 @@ export default function DocumentsPage() {
     page,
     limit,
     search: searchValue || undefined,
-    status: statusFilter && statusFilter !== "all" ? statusFilter : undefined,
-    category:
-      categoryFilter && categoryFilter !== "all" ? categoryFilter : undefined,
+    vip:
+      statusFilter === "vip"
+        ? true
+        : statusFilter === "public"
+        ? false
+        : undefined,
   });
 
-  const { data: analytics } = useGetDocumentAnalyticsQuery();
+  // TODO: Analytics data không có trong BE model, cần implement sau
+  // const { data: analytics } = useGetDocumentAnalyticsQuery();
+  const totalDocuments = documentsData?.total || 0;
+  const totalDownloads =
+    documentsData?.documents?.reduce(
+      (sum: number, doc: Document) => sum + doc.downloadCount,
+      0
+    ) || 0;
 
   // Use real data from API
   const displayData = documentsData?.documents || [];
@@ -70,15 +77,6 @@ export default function DocumentsPage() {
     setStatusFilter("all");
     setCategoryFilter("all");
     setPage(1);
-  };
-
-  // Format file size
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
   return (
@@ -122,9 +120,7 @@ export default function DocumentsPage() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {analytics?.totalDocuments || 0}
-            </div>
+            <div className="text-2xl font-bold">{totalDocuments}</div>
             <p className="text-xs text-muted-foreground">All documents</p>
           </CardContent>
         </Card>
@@ -138,7 +134,7 @@ export default function DocumentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(analytics?.totalDownloads || 0).toLocaleString()}
+              {totalDownloads.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">All time downloads</p>
           </CardContent>
@@ -151,7 +147,8 @@ export default function DocumentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatFileSize(analytics?.totalFileSize || 0)}
+              {/* TODO: Total file size không có trong BE model */}
+              N/A
             </div>
             <p className="text-xs text-muted-foreground">Total file size</p>
           </CardContent>
@@ -166,7 +163,7 @@ export default function DocumentsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {analytics?.recentUploads || 0}
+              {/* TODO: Recent uploads analytics không có trong BE model */}0
             </div>
             <p className="text-xs text-muted-foreground">Last 7 days</p>
           </CardContent>
@@ -197,19 +194,16 @@ export default function DocumentsPage() {
               <Select
                 value={statusFilter}
                 onValueChange={(value) =>
-                  setStatusFilter(
-                    value as "active" | "archived" | "deleted" | "all"
-                  )
+                  setStatusFilter(value as "vip" | "public" | "all")
                 }
               >
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                  <SelectItem value="deleted">Deleted</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="vip">VIP</SelectItem>
+                  <SelectItem value="public">Public</SelectItem>
                 </SelectContent>
               </Select>
 

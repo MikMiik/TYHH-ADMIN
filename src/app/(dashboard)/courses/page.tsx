@@ -79,10 +79,8 @@ export default function CoursesPage() {
     (course: Course) => course.createdAt
   ).length; // Simplified
   const draftCourses = totalCourses - publishedCourses;
-  const totalEnrollments = courses.reduce(
-    (sum: number, course: Course) => sum + (course.enrollmentCount || 0),
-    0
-  );
+  // Note: enrollmentCount không có trong BE model, sẽ cần tính từ course_user table
+  const totalEnrollments = 0; // TODO: Implement proper enrollment count from BE
 
   return (
     <div className="space-y-8">

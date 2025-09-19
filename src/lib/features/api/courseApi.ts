@@ -1,6 +1,6 @@
 import { baseApi, ApiResponse } from './baseApi';
 
-// Types cho Course API  
+// Types cho Course API theo BE model thực tế 
 export interface Course {
   id: number;
   title: string;
@@ -20,7 +20,6 @@ export interface Course {
   content?: string;
   group?: string;
   introVideo?: string;
-  enrollmentCount?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
