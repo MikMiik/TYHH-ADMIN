@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, LogIn, AlertCircle, ArrowLeft } from "lucide-react";
@@ -29,8 +29,20 @@ import { loginSchema, type LoginFormData } from "@/lib/schemas/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { login, isLoading, error } = useAuthActions();
+
+  // Get redirect URL from query params
+  const redirectUrl = searchParams.get("redirect") || "/";
+  const errorParam = searchParams.get("error");
+
+  useEffect(() => {
+    if (errorParam === "unauthorized") {
+      setErrorMessage("You need admin permissions to access this area.");
+    }
+  }, [errorParam]);
 
   const handleGoBack = () => {
     if (window.history.length > 1) {
@@ -49,10 +61,12 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    setErrorMessage(null);
     const result = await login(data);
 
     if (result.success) {
-      router.push("/");
+      // Redirect to the original URL or dashboard
+      router.push(redirectUrl);
     }
   };
 
@@ -84,10 +98,10 @@ export default function LoginPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
-              {error && (
+              {(error || errorMessage) && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>{error || errorMessage}</AlertDescription>
                 </Alert>
               )}
 

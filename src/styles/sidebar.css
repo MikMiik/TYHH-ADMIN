@@ -1,0 +1,39 @@
+/* Custom active sidebar styling */
+.sidebar-menu-button-active {
+  position: relative;
+}
+
+.sidebar-menu-button-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: hsl(var(--primary));
+  border-radius: 0 2px 2px 0;
+}
+
+/* Enhanced hover effects */
+.sidebar [data-active="true"] {
+  background-color: hsl(var(--sidebar-accent));
+  color: hsl(var(--sidebar-accent-foreground));
+  font-weight: 500;
+  border-left: 3px solid hsl(var(--primary));
+}
+
+/* Icon highlighting for active items */
+.sidebar [data-active="true"] svg {
+  color: hsl(var(--primary));
+}
+
+/* Smooth transition for all sidebar items */
+.sidebar [data-sidebar="menu-button"] {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Collapsed sidebar active indicator */
+.sidebar[data-state="collapsed"] [data-active="true"] {
+  border-left: none;
+  box-shadow: inset 0 0 0 2px hsl(var(--primary));
+}

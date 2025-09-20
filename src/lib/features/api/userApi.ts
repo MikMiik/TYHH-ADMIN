@@ -7,7 +7,7 @@ interface UsersListParams {
   limit?: number;
   search?: string;
   role?: 'admin' | 'teacher' | 'user';
-  status?: 'active' | 'inactive';
+  status?: string; // Allow any string for status
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -145,6 +145,37 @@ export const userApi = baseApi.injectEndpoints({
         response.data || { updated: 0 },
       invalidatesTags: ['User'],
     }),
+
+    // Set user key
+    setUserKey: builder.mutation<User, { id: number | string; key?: string }>({
+      query: ({ id, key }) => ({
+        url: `/admin/users/${id}/set-key`,
+        method: 'POST',
+        body: { key },
+      }),
+      transformResponse: (response: ApiResponse<User>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to set user key');
+        }
+        return response.data;
+      },
+      invalidatesTags: (result, error, { id }) => [{ type: 'User', id }, 'User'],
+    }),
+
+    // Send verification email
+    sendVerificationEmail: builder.mutation<{ message: string; email: string }, number | string>({
+      query: (id) => ({
+        url: `/admin/users/${id}/send-verification`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<{ message: string; email: string }>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to send verification email');
+        }
+        return response.data;
+      },
+      invalidatesTags: (result, error, id) => [{ type: 'User', id }, 'User'],
+    }),
   }),
 });
 
@@ -158,4 +189,6 @@ export const {
   useDeleteUserMutation,
   useToggleUserStatusMutation,
   useBulkUpdateUsersMutation,
+  useSetUserKeyMutation,
+  useSendVerificationEmailMutation,
 } = userApi;

@@ -15,6 +15,7 @@ export interface User {
   point: number;
   googleId?: string | null;
   activeKey: boolean;
+  key?: string | null;
   lastLogin?: Date | null;
   verifiedAt?: Date | null;
   createdAt: Date;

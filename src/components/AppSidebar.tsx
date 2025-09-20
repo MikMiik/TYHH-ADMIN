@@ -14,6 +14,7 @@ import {
   Send,
   LifeBuoy,
   LogOut,
+  User,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,7 +31,7 @@ import {
 } from "./ui/sidebar";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +66,7 @@ interface MenuGroup {
 
 const AppSidebar = () => {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated } = useAuth();
   const { logout } = useAuthActions();
 
@@ -81,6 +83,14 @@ const AppSidebar = () => {
   const getUserDisplayName = () => {
     if (!user) return "Admin";
     return user.name || user.username || "Admin";
+  };
+
+  // Function to check if a path is active
+  const isActivePath = (itemUrl: string) => {
+    if (itemUrl === "/") {
+      return pathname === "/";
+    }
+    return pathname.startsWith(itemUrl);
   };
 
   // Admin Menu Structure - Only implemented pages
@@ -148,7 +158,7 @@ const AppSidebar = () => {
       <SidebarHeader className="py-4">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild isActive={isActivePath("/")}>
               <Link href="/">
                 <Image src="/vercel.svg" alt="logo" width={20} height={20} />
                 <span>Admin</span>
@@ -171,7 +181,13 @@ const AppSidebar = () => {
                       // Menu với submenu
                       <Collapsible className="group/collapsible">
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton>
+                          <SidebarMenuButton
+                            className={
+                              isActivePath(item.url)
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : ""
+                            }
+                          >
                             <item.icon />
                             <span>{item.title}</span>
                             <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
@@ -182,7 +198,10 @@ const AppSidebar = () => {
                             <SidebarMenu>
                               {item.children.map((child) => (
                                 <SidebarMenuItem key={child.title}>
-                                  <SidebarMenuButton asChild>
+                                  <SidebarMenuButton
+                                    asChild
+                                    isActive={isActivePath(child.url)}
+                                  >
                                     <Link href={child.url}>
                                       <span>{child.title}</span>
                                     </Link>
@@ -195,7 +214,10 @@ const AppSidebar = () => {
                       </Collapsible>
                     ) : (
                       // Menu thông thường
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActivePath(item.url)}
+                      >
                         <Link href={item.url}>
                           <item.icon />
                           <span>{item.title}</span>
@@ -222,7 +244,10 @@ const AppSidebar = () => {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActivePath("/help/support")}
+                    >
                       <Link href="/help/support">
                         <LifeBuoy />
                         Support
@@ -230,7 +255,10 @@ const AppSidebar = () => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActivePath("/help/feedback")}
+                    >
                       <Link href="/help/feedback">
                         <Send />
                         Feedback
@@ -256,8 +284,12 @@ const AppSidebar = () => {
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Account</DropdownMenuItem>
-                  <DropdownMenuItem>Setting</DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={`/users/${user.username}`}>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={handleLogout}

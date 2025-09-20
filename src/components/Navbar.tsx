@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Moon, Settings, Sun, User } from "lucide-react";
+import { LogOut, Moon, Sun, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -89,13 +89,11 @@ const Navbar = () => {
             <DropdownMenuContent sideOffset={10}>
               <DropdownMenuLabel>{getUserDisplayName()}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="h-[1.2rem] w-[1.2rem] mr-2" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="h-[1.2rem] w-[1.2rem] mr-2" />
-                Settings
+              <DropdownMenuItem asChild>
+                <Link href={`/users/${user.username}`}>
+                  <User className="h-[1.2rem] w-[1.2rem] mr-2" />
+                  Profile
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onClick={handleLogout}>
                 <LogOut className="h-[1.2rem] w-[1.2rem] mr-2" />

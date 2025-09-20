@@ -1,5 +1,6 @@
 import AppSidebar from "@/components/AppSidebar";
 import Navbar from "@/components/Navbar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cookies } from "next/headers";
 
@@ -12,12 +13,14 @@ export default async function DashboardLayout({
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen}>
-      <AppSidebar />
-      <main className="w-full">
-        <Navbar />
-        <div className="px-4">{children}</div>
-      </main>
-    </SidebarProvider>
+    <ProtectedRoute>
+      <SidebarProvider defaultOpen={defaultOpen}>
+        <AppSidebar />
+        <main className="w-full">
+          <Navbar />
+          <div className="px-4">{children}</div>
+        </main>
+      </SidebarProvider>
+    </ProtectedRoute>
   );
 }

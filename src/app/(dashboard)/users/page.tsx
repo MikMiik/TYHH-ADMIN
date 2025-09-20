@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Search, Filter, RefreshCw } from "lucide-react";
 
 import { userColumns } from "./columns";
@@ -32,6 +32,7 @@ type User = {
   username: string;
   email: string;
   role: "admin" | "teacher" | "user";
+  status?: string | null;
   activeKey: boolean;
   point?: number;
   lastLogin?: Date | null;
@@ -45,13 +46,11 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<
     "admin" | "teacher" | "user" | "all"
   >("all");
-  const [statusFilter, setStatusFilter] = useState<
-    "active" | "inactive" | "all"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // API call với parameters (fallback to mock data for now)
+  // API call - CHỈ lấy toàn bộ danh sách users, KHÔNG filter gì ở backend
   const {
     data: usersData,
     isLoading,
@@ -60,15 +59,66 @@ export default function UsersPage() {
   } = useGetUsersQuery({
     page,
     limit,
-    search: searchValue || undefined,
-    role: roleFilter && roleFilter !== "all" ? roleFilter : undefined,
-    status: statusFilter && statusFilter !== "all" ? statusFilter : undefined,
+    // TẤT CẢ filtering chỉ làm ở frontend, không gửi parameter lên backend
   });
 
   // Use real data from API
-  const displayData = usersData?.items || [];
-  const users = usersData?.items || [];
+  const rawUsers = usersData?.items || [];
+
+  // FRONTEND FILTERING - Tất cả filtering chỉ làm ở frontend
+  const displayData = rawUsers.filter((user) => {
+    // 1. Search filter (name, email, username)
+    if (searchValue) {
+      const searchLower = searchValue.toLowerCase();
+      const matchSearch =
+        user.name.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        user.username.toLowerCase().includes(searchLower);
+      if (!matchSearch) {
+        return false;
+      }
+    }
+
+    // 2. Role filter
+    if (roleFilter && roleFilter !== "all") {
+      if (user.role !== roleFilter) {
+        return false;
+      }
+    }
+
+    // 3. Status filter - CHỈ dùng user.status field
+    if (statusFilter && statusFilter !== "all") {
+      if (user.status) {
+        const isMatch = user.status === statusFilter;
+        if (!isMatch) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const users = rawUsers; // Keep original for stats
   const pagination = usersData?.pagination;
+
+  // Get available status options from actual user data - only from status field
+  const availableStatuses = useMemo(() => {
+    if (!usersData?.items || usersData.items.length === 0)
+      return ["active", "inactive"]; // Default fallback
+    const statuses = new Set<string>();
+    usersData.items.forEach((user: User) => {
+      if (user.status) {
+        statuses.add(user.status);
+      }
+    });
+    // If no status found in data, provide default options
+    if (statuses.size === 0) {
+      return ["active", "inactive"];
+    }
+    return Array.from(statuses).sort();
+  }, [usersData?.items]);
 
   const handleClearFilters = () => {
     setSearchValue("");
@@ -77,11 +127,11 @@ export default function UsersPage() {
     setPage(1);
   };
 
-  // Stats calculation - filtering now done server-side
+  // Stats calculation - ONLY use backend status field, NO activeKey
   const stats = {
     total: pagination?.total || 0,
-    active: users.filter((u: User) => u.activeKey).length,
-    inactive: users.filter((u: User) => !u.activeKey).length,
+    active: users.filter((u: User) => u.status === "active").length,
+    inactive: users.filter((u: User) => u.status === "inactive").length,
     admins: users.filter((u: User) => u.role === "admin").length,
     teachers: users.filter((u: User) => u.role === "teacher").length,
     users: users.filter((u: User) => u.role === "user").length,
@@ -238,17 +288,18 @@ export default function UsersPage() {
 
             <Select
               value={statusFilter}
-              onValueChange={(value) =>
-                setStatusFilter(value as "active" | "inactive" | "all")
-              }
+              onValueChange={(value) => setStatusFilter(value)}
             >
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                {availableStatuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

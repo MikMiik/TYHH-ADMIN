@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, UserX, UserCheck, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Shield,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,13 +28,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import {
   useGetUserByUsernameQuery,
   useUpdateUserMutation,
-  useToggleUserStatusMutation,
+  useDeleteUserMutation,
+  useSetUserKeyMutation,
+  useSendVerificationEmailMutation,
 } from "@/lib/features/api/userApi";
 
 // Import types
@@ -38,6 +55,7 @@ type UpdateUserData = {
   role?: "admin" | "teacher" | "user";
   activeKey?: boolean;
   password?: string;
+  verifiedAt?: Date | null;
 };
 
 // Define user form type
@@ -69,6 +87,11 @@ export default function UserDetailPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [passwordMode, setPasswordMode] = useState<"keep" | "change">("keep");
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyAction, setVerifyAction] = useState<"verify" | "unverify">(
+    "verify"
+  );
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // RTK Query hooks
   const {
@@ -79,8 +102,12 @@ export default function UserDetailPage() {
 
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
-  const [toggleUserStatus, { isLoading: isTogglingStatus }] =
-    useToggleUserStatusMutation();
+  const [setUserKey, { isLoading: isSettingKey }] = useSetUserKeyMutation();
+
+  const [sendVerificationEmail, { isLoading: isSendingEmail }] =
+    useSendVerificationEmailMutation();
+
+  const [deleteUser, { isLoading: isDeletingUser }] = useDeleteUserMutation();
 
   // Populate form when user data is loaded
   useEffect(() => {
@@ -148,6 +175,7 @@ export default function UserDetailPage() {
         throw new Error("User ID not available");
       }
 
+      const prevUsername = user?.username;
       await updateUser({
         id: user.id,
         data: updateData,
@@ -161,6 +189,11 @@ export default function UserDetailPage() {
         password: "",
         confirmPassword: "",
       }));
+
+      // Nếu username thay đổi, điều hướng sang URL mới
+      if (prevUsername && prevUsername !== formData.username) {
+        router.replace(`/users/${formData.username}`);
+      }
     } catch (error: unknown) {
       const errorMessage =
         error && typeof error === "object" && "data" in error
@@ -171,29 +204,96 @@ export default function UserDetailPage() {
     }
   };
 
-  const handleToggleStatus = async () => {
+  const handleVerifyClick = (action: "verify" | "unverify") => {
+    setVerifyAction(action);
+    setShowVerifyModal(true);
+  };
+
+  const handleVerifyConfirm = async () => {
     if (!user?.id) return;
 
     try {
-      await toggleUserStatus({
+      const updateData: UpdateUserData = {
+        verifiedAt: verifyAction === "verify" ? new Date() : null,
+      };
+
+      await updateUser({
         id: user.id,
-        activeKey: !formData.activeKey,
+        data: updateData,
       }).unwrap();
 
-      setFormData((prev) => ({
-        ...prev,
-        activeKey: !prev.activeKey,
-      }));
-
       toast.success(
-        `User ${formData.activeKey ? "deactivated" : "activated"} successfully`
+        `User ${
+          verifyAction === "verify" ? "verified" : "unverified"
+        } successfully`
       );
+
+      setShowVerifyModal(false);
     } catch (error: unknown) {
       const errorMessage =
         error && typeof error === "object" && "data" in error
           ? (error.data as Record<string, unknown>)?.message ||
-            "Failed to update user status"
-          : "Failed to update user status";
+            `Failed to ${verifyAction} user`
+          : `Failed to ${verifyAction} user`;
+      toast.error(String(errorMessage));
+    }
+  };
+
+  const handleSetKey = async () => {
+    if (!user?.id) return;
+
+    try {
+      await setUserKey({
+        id: user.id,
+        // Let backend generate random key
+      }).unwrap();
+
+      toast.success("User key set successfully");
+    } catch (error: unknown) {
+      const errorMessage =
+        error && typeof error === "object" && "data" in error
+          ? (error.data as Record<string, unknown>)?.message ||
+            "Failed to set user key"
+          : "Failed to set user key";
+      toast.error(String(errorMessage));
+    }
+  };
+
+  const handleSendVerificationEmail = async () => {
+    if (!user?.id) return;
+
+    try {
+      await sendVerificationEmail(user.id).unwrap();
+      toast.success("Verification email sent successfully");
+    } catch (error: unknown) {
+      const errorMessage =
+        error && typeof error === "object" && "data" in error
+          ? (error.data as Record<string, unknown>)?.message ||
+            "Failed to send verification email"
+          : "Failed to send verification email";
+      toast.error(String(errorMessage));
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!user?.id) return;
+
+    try {
+      await deleteUser(user.id).unwrap();
+      toast.success("User deleted successfully");
+      setShowDeleteModal(false);
+      // Redirect to users list
+      router.push("/users");
+    } catch (error: unknown) {
+      const errorMessage =
+        error && typeof error === "object" && "data" in error
+          ? (error.data as Record<string, unknown>)?.message ||
+            "Failed to delete user"
+          : "Failed to delete user";
       toast.error(String(errorMessage));
     }
   };
@@ -296,21 +396,22 @@ export default function UserDetailPage() {
         </div>
         <div className="flex items-center space-x-2">
           <Button
-            variant={formData.activeKey ? "outline" : "default"}
+            variant={user?.verifiedAt ? "outline" : "default"}
             size="sm"
-            onClick={handleToggleStatus}
-            disabled={isTogglingStatus}
+            onClick={() =>
+              handleVerifyClick(user?.verifiedAt ? "unverify" : "verify")
+            }
             className="flex items-center"
           >
-            {formData.activeKey ? (
+            {user?.verifiedAt ? (
               <>
-                <UserX className="mr-2 h-4 w-4" />
-                Deactivate
+                <Shield className="mr-2 h-4 w-4" />
+                Unverify
               </>
             ) : (
               <>
-                <UserCheck className="mr-2 h-4 w-4" />
-                Activate
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Verify
               </>
             )}
           </Button>
@@ -401,9 +502,62 @@ export default function UserDetailPage() {
                   <Label>Status</Label>
                   <div className="flex items-center h-10">
                     <Badge
-                      variant={formData.activeKey ? "default" : "secondary"}
+                      variant={
+                        user.status === "active"
+                          ? "default"
+                          : user.status === "inactive"
+                          ? "destructive"
+                          : user.status
+                          ? "secondary"
+                          : formData.activeKey
+                          ? "default"
+                          : "destructive"
+                      }
+                      className={
+                        user.status === "active"
+                          ? "bg-green-500 hover:bg-green-600"
+                          : user.status === "inactive"
+                          ? "bg-red-500 hover:bg-red-600"
+                          : user.status
+                          ? "bg-yellow-500 hover:bg-yellow-600 text-black"
+                          : formData.activeKey
+                          ? "bg-green-500 hover:bg-green-600"
+                          : "bg-red-500 hover:bg-red-600"
+                      }
                     >
-                      {formData.activeKey ? "Active" : "Inactive"}
+                      {user.status
+                        ? user.status.charAt(0).toUpperCase() +
+                          user.status.slice(1)
+                        : formData.activeKey
+                        ? "Active"
+                        : "Inactive"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key and ActiveKey Section */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>User Key</Label>
+                  <div className="flex items-center h-10">
+                    <Badge variant="outline" className="text-xs font-mono">
+                      {user.key || "No key assigned"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Key Status</Label>
+                  <div className="flex items-center h-10">
+                    <Badge
+                      variant={user.activeKey ? "default" : "secondary"}
+                      className={
+                        user.activeKey
+                          ? "bg-green-500 hover:bg-green-600"
+                          : "bg-gray-500 hover:bg-gray-600"
+                      }
+                    >
+                      {user.activeKey ? "Activated" : "Not Activated"}
                     </Badge>
                   </div>
                 </div>
@@ -458,7 +612,7 @@ export default function UserDetailPage() {
                               onChange={(e) =>
                                 handleInputChange("password", e.target.value)
                               }
-                              placeholder="Enter new password (min 6 chars)"
+                              placeholder="Enter new password"
                             />
                             <Button
                               type="button"
@@ -562,35 +716,90 @@ export default function UserDetailPage() {
                 variant="outline"
                 size="sm"
                 className="w-full justify-start"
+                onClick={handleSetKey}
+                disabled={isSettingKey}
               >
-                View Login History
+                {isSettingKey ? "Setting Key..." : "Set New Key"}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full justify-start"
+                onClick={handleSendVerificationEmail}
+                disabled={isSendingEmail}
               >
-                Reset Password
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-              >
-                Send Verification Email
+                {isSendingEmail ? "Sending..." : "Send Verification Email"}
               </Button>
               <Separator />
               <Button
                 variant="destructive"
                 size="sm"
                 className="w-full justify-start"
+                onClick={handleDeleteClick}
+                disabled={isDeletingUser}
               >
-                Delete Account
+                {isDeletingUser ? "Deleting..." : "Delete Account"}
               </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Verify Confirmation Modal */}
+      <Dialog open={showVerifyModal} onOpenChange={setShowVerifyModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {verifyAction === "verify" ? "Verify User" : "Unverify User"}
+            </DialogTitle>
+            <DialogDescription>
+              {verifyAction === "verify"
+                ? "Are you sure you want to verify this user? This will set their verification status to verified."
+                : "Are you sure you want to unverify this user? This will remove their verification status."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVerifyModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleVerifyConfirm}
+              variant={verifyAction === "verify" ? "default" : "destructive"}
+            >
+              {verifyAction === "verify" ? "Verify User" : "Unverify User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete User Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this user account? This action
+              cannot be undone and will permanently remove all user data.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={isDeletingUser}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeletingUser}
+            >
+              {isDeletingUser ? "Deleting..." : "Delete User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

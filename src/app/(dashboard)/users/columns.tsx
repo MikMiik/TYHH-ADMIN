@@ -18,11 +18,78 @@ import {
   Shield,
   User,
   UserCheck,
+  Eye,
+  Trash2,
 } from "lucide-react";
 import { User as UserType } from "@/lib/types/auth";
 import { format } from "date-fns";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useDeleteUserMutation } from "@/lib/features/api/userApi";
+import { toast } from "sonner";
+import { useState } from "react";
+
+// Actions component for user table
+const UserActions = ({ user }: { user: UserType }) => {
+  const router = useRouter();
+  const [deleteUser, { isLoading }] = useDeleteUserMutation();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleViewDetails = () => {
+    router.push(`/users/${user.username}`);
+  };
+
+  const handleDelete = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete user "${user.name}"? This action cannot be undone.`
+      )
+    ) {
+      try {
+        setIsDeleting(true);
+        await deleteUser(user.id).unwrap();
+        toast.success("User deleted successfully");
+      } catch (error: unknown) {
+        const errorMessage =
+          error && typeof error === "object" && "data" in error
+            ? (error.data as Record<string, unknown>)?.message ||
+              "Failed to delete user"
+            : "Failed to delete user";
+        toast.error(String(errorMessage));
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuItem onClick={handleViewDetails}>
+          <Eye className="mr-2 h-4 w-4" />
+          View details
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleDelete}
+          className="text-destructive"
+          disabled={isLoading || isDeleting}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          {isDeleting ? "Deleting..." : "Delete user"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 // User columns definition
 export const userColumns: ColumnDef<UserType>[] = [
@@ -142,6 +209,18 @@ export const userColumns: ColumnDef<UserType>[] = [
     header: "Status",
     cell: ({ row }) => {
       const user = row.original;
+      // Ưu tiên status BE, fallback về activeKey
+      if (user.status) {
+        let variant: "default" | "secondary" | "destructive" = "default";
+        if (user.status === "inactive") variant = "secondary";
+        if (user.status === "banned" || user.status === "locked")
+          variant = "destructive";
+        return (
+          <Badge variant={variant}>
+            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+          </Badge>
+        );
+      }
       const isActive = user.activeKey;
       return (
         <Badge variant={isActive ? "default" : "secondary"}>
@@ -154,19 +233,21 @@ export const userColumns: ColumnDef<UserType>[] = [
     accessorKey: "point",
     header: ({ column }) => {
       return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Points
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Points
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       );
     },
     cell: ({ row }) => {
       const points = parseFloat(row.getValue("point"));
       return (
-        <div className="text-right font-mono">{points.toLocaleString()}</div>
+        <div className="text-center font-mono">{points.toLocaleString()}</div>
       );
     },
   },
@@ -189,32 +270,7 @@ export const userColumns: ColumnDef<UserType>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const user = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(user.email)}
-            >
-              Copy email address
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View details</DropdownMenuItem>
-            <DropdownMenuItem>Edit user</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
-              {user.activeKey ? "Deactivate" : "Activate"} user
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return <UserActions user={user} />;
     },
   },
 ];
