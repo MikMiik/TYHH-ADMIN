@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Eye,
   EyeOff,
+  AlertCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import {
   useGetUserByUsernameQuery,
@@ -47,26 +49,15 @@ import {
   useSendVerificationEmailMutation,
 } from "@/lib/features/api/userApi";
 
-// Import types
-type UpdateUserData = {
-  name?: string;
-  email?: string;
-  username?: string;
-  role?: "admin" | "teacher" | "user";
-  activeKey?: boolean;
-  password?: string;
-  verifiedAt?: Date | null;
-};
+// Import validation schema and z for type safety (following .github/development-instructions.md guidelines)
+import { editUserSchema, type EditUserFormData } from "@/lib/schemas/user";
+import { z } from "zod";
+// Define user form type - using EditUserFormData from schema
+type UserFormData = EditUserFormData;
 
-// Define user form type
-type UserFormData = {
-  name: string;
-  email: string;
-  username: string;
-  role: "admin" | "teacher" | "user";
-  activeKey: boolean;
-  password?: string;
-  confirmPassword?: string;
+// Validation errors type
+type ValidationErrors = {
+  [K in keyof EditUserFormData]?: string;
 };
 
 export default function UserDetailPage() {
@@ -82,8 +73,17 @@ export default function UserDetailPage() {
     activeKey: true,
     password: "",
     confirmPassword: "",
+    phone: "",
+    yearOfBirth: "",
+    city: "",
+    school: "",
+    facebook: "",
   });
 
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {}
+  );
+  const [backendError, setBackendError] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [passwordMode, setPasswordMode] = useState<"keep" | "change">("keep");
@@ -120,7 +120,15 @@ export default function UserDetailPage() {
         activeKey: user.activeKey ?? true,
         password: "",
         confirmPassword: "",
+        phone: user.phone || "",
+        yearOfBirth: user.yearOfBirth?.toString() || "",
+        city: user.city || "",
+        school: user.school || "",
+        facebook: user.facebook || "",
       });
+      // Clear validation errors when loading new user data
+      setValidationErrors({});
+      setBackendError("");
     }
   }, [user]);
 
@@ -132,44 +140,89 @@ export default function UserDetailPage() {
       ...prev,
       [field]: value,
     }));
+
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [field]: undefined,
+      }));
+    }
+  };
+
+  // Validation function using Zod schema
+  const validateForm = (): boolean => {
+    try {
+      // Clear previous errors
+      setValidationErrors({});
+      setBackendError("");
+
+      // Prepare data for validation
+      const dataToValidate = {
+        ...formData,
+        // Convert empty strings to undefined for optional fields
+        phone: formData.phone?.trim() || undefined,
+        yearOfBirth: formData.yearOfBirth?.trim() || undefined,
+        city: formData.city?.trim() || undefined,
+        school: formData.school?.trim() || undefined,
+        facebook: formData.facebook?.trim() || undefined,
+        // Handle password validation based on mode
+        password: passwordMode === "change" ? formData.password : undefined,
+        confirmPassword:
+          passwordMode === "change" ? formData.confirmPassword : undefined,
+      };
+
+      editUserSchema.parse(dataToValidate);
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: ValidationErrors = {};
+        error.issues.forEach((issue) => {
+          if (issue.path.length > 0) {
+            const field = issue.path[0] as keyof EditUserFormData;
+            errors[field] = issue.message;
+          }
+        });
+        setValidationErrors(errors);
+      }
+      return false;
+    }
   };
 
   const handleSave = async () => {
     try {
-      // Validation
-      if (
-        !formData.name.trim() ||
-        !formData.email.trim() ||
-        !formData.username.trim()
-      ) {
-        toast.error("Please fill in all required fields");
+      // Clear backend error
+      setBackendError("");
+
+      // Validate form using Zod schema (following development-instructions.md)
+      if (!validateForm()) {
+        toast.error("Vui lòng kiểm tra và sửa các lỗi trong form.");
         return;
       }
 
-      if (passwordMode === "change") {
-        if (!formData.password || formData.password.length < 6) {
-          toast.error("Password must be at least 6 characters");
-          return;
-        }
-        if (formData.password !== formData.confirmPassword) {
-          toast.error("Passwords do not match");
-          return;
-        }
-      }
-
-      // Prepare update data
-      const updateData: UpdateUserData = {
-        name: formData.name,
-        email: formData.email,
-        username: formData.username,
-        role: formData.role,
-        activeKey: formData.activeKey,
-      };
+      // Prepare update data with proper typing
+      const updateData: Record<string, string | number | boolean | undefined> =
+        {
+          name: formData.name,
+          email: formData.email,
+          username: formData.username,
+          role: formData.role,
+          activeKey: formData.activeKey,
+        };
 
       // Only include password if changing
       if (passwordMode === "change" && formData.password) {
         updateData.password = formData.password;
       }
+
+      // Include optional fields if they have values
+      if (formData.phone?.trim()) updateData.phone = formData.phone.trim();
+      if (formData.yearOfBirth?.trim())
+        updateData.yearOfBirth = parseInt(formData.yearOfBirth);
+      if (formData.city?.trim()) updateData.city = formData.city.trim();
+      if (formData.school?.trim()) updateData.school = formData.school.trim();
+      if (formData.facebook?.trim())
+        updateData.facebook = formData.facebook.trim();
 
       if (!user?.id) {
         throw new Error("User ID not available");
@@ -195,12 +248,26 @@ export default function UserDetailPage() {
         router.replace(`/users/${formData.username}`);
       }
     } catch (error: unknown) {
-      const errorMessage =
-        error && typeof error === "object" && "data" in error
-          ? (error.data as Record<string, unknown>)?.message ||
-            "Failed to update user"
-          : "Failed to update user";
-      toast.error(String(errorMessage));
+      // Handle backend validation errors (following development-instructions.md)
+      if (error && typeof error === "object" && "data" in error) {
+        const errorData = error.data as Record<string, unknown>;
+        if (errorData?.errors && Array.isArray(errorData.errors)) {
+          // Display first backend validation error
+          const firstError = errorData.errors[0] as Record<string, unknown>;
+          setBackendError(
+            String(
+              firstError.msg || firstError.message || "Failed to update user"
+            )
+          );
+        } else if (errorData?.message) {
+          setBackendError(String(errorData.message));
+        } else {
+          setBackendError("Failed to update user");
+        }
+      } else {
+        setBackendError("Failed to update user");
+      }
+      toast.error("Failed to update user. Please check the form for errors.");
     }
   };
 
@@ -213,7 +280,7 @@ export default function UserDetailPage() {
     if (!user?.id) return;
 
     try {
-      const updateData: UpdateUserData = {
+      const updateData: Record<string, Date | null> = {
         verifiedAt: verifyAction === "verify" ? new Date() : null,
       };
 
@@ -308,10 +375,17 @@ export default function UserDetailPage() {
         activeKey: user.activeKey ?? true,
         password: "",
         confirmPassword: "",
+        phone: user.phone || "",
+        yearOfBirth: user.yearOfBirth?.toString() || "",
+        city: user.city || "",
+        school: user.school || "",
+        facebook: user.facebook || "",
       });
     }
     setIsEditing(false);
     setPasswordMode("keep");
+    setValidationErrors({});
+    setBackendError("");
   };
 
   if (isLoadingUser) {
@@ -442,6 +516,14 @@ export default function UserDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Display Backend Errors */}
+              {backendError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{backendError}</AlertDescription>
+                </Alert>
+              )}
+
               {/* Basic Info */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
@@ -452,7 +534,15 @@ export default function UserDetailPage() {
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     disabled={!isEditing}
                     placeholder="Enter full name"
+                    className={
+                      validationErrors.name ? "border-destructive" : ""
+                    }
                   />
+                  {validationErrors.name && (
+                    <p className="text-sm text-destructive">
+                      {validationErrors.name}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="username">Username *</Label>
@@ -464,7 +554,15 @@ export default function UserDetailPage() {
                     }
                     disabled={!isEditing}
                     placeholder="Enter username"
+                    className={
+                      validationErrors.username ? "border-destructive" : ""
+                    }
                   />
+                  {validationErrors.username && (
+                    <p className="text-sm text-destructive">
+                      {validationErrors.username}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -477,7 +575,13 @@ export default function UserDetailPage() {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   disabled={!isEditing}
                   placeholder="Enter email address"
+                  className={validationErrors.email ? "border-destructive" : ""}
                 />
+                {validationErrors.email && (
+                  <p className="text-sm text-destructive">
+                    {validationErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -613,6 +717,11 @@ export default function UserDetailPage() {
                                 handleInputChange("password", e.target.value)
                               }
                               placeholder="Enter new password"
+                              className={
+                                validationErrors.password
+                                  ? "border-destructive"
+                                  : ""
+                              }
                             />
                             <Button
                               type="button"
@@ -628,6 +737,11 @@ export default function UserDetailPage() {
                               )}
                             </Button>
                           </div>
+                          {validationErrors.password && (
+                            <p className="text-sm text-destructive">
+                              {validationErrors.password}
+                            </p>
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="confirmPassword">
@@ -644,7 +758,17 @@ export default function UserDetailPage() {
                               )
                             }
                             placeholder="Confirm new password"
+                            className={
+                              validationErrors.confirmPassword
+                                ? "border-destructive"
+                                : ""
+                            }
                           />
+                          {validationErrors.confirmPassword && (
+                            <p className="text-sm text-destructive">
+                              {validationErrors.confirmPassword}
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
