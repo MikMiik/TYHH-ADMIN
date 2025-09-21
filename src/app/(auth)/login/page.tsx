@@ -52,13 +52,16 @@ export default function LoginPage() {
     }
   };
 
+
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: false,
     },
   });
+
 
   const onSubmit = async (data: LoginFormData) => {
     setErrorMessage(null);
@@ -159,21 +162,27 @@ export default function LoginPage() {
                 )}
               />
 
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-2">
-                  <input
-                    id="remember"
-                    type="checkbox"
-                    className="rounded border border-input bg-background"
-                  />
-                  <label
-                    htmlFor="remember"
-                    className="text-muted-foreground cursor-pointer"
-                  >
-                    Remember me
-                  </label>
-                </div>
-              </div>
+              <FormField
+                control={form.control}
+                name="rememberMe"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-2">
+                    <FormControl>
+                      <input
+                        id="remember"
+                        type="checkbox"
+                        className="rounded border border-input bg-background"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormLabel htmlFor="remember" className="text-muted-foreground cursor-pointer mb-0">
+                      Remember me
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-4 pt-6">

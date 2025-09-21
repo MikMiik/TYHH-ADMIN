@@ -24,6 +24,97 @@ import { Course } from "@/lib/features/api/courseApi";
 import { format } from "date-fns";
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useDeleteCourseMutation } from "@/lib/features/api/courseApi";
+import { toast } from "sonner";
+
+// Course Image Component with placeholder fallback
+const CourseImage = ({ course }: { course: Course }) => {
+  const [imageError, setImageError] = useState(false);
+
+  if (!course.thumbnail || imageError) {
+    return (
+      <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+        <BookOpen className="h-6 w-6 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    // <Image
+    //   src={course.thumbnail}
+    //   alt={course.title}
+    //   width={48}
+    //   height={48}
+    //   className="h-12 w-12 rounded-lg object-cover"
+    //   onError={() => setImageError(true)}
+    // />
+    null
+  );
+};
+
+// Actions component for course table
+const CourseActions = ({ course }: { course: Course }) => {
+  const router = useRouter();
+  const [deleteCourse, { isLoading }] = useDeleteCourseMutation();
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleViewDetails = () => {
+    router.push(`/courses/${course.id}`);
+  };
+
+  const handleDelete = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete course "${course.title}"? This action cannot be undone.`
+      )
+    ) {
+      try {
+        setIsDeleting(true);
+        await deleteCourse(course.id).unwrap();
+        toast.success("Course deleted successfully");
+      } catch (error: unknown) {
+        const errorMessage =
+          error && typeof error === "object" && "data" in error
+            ? (error.data as Record<string, unknown>)?.message ||
+              "Failed to delete course"
+            : "Failed to delete course";
+        toast.error(String(errorMessage));
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleViewDetails}>
+          <Eye className="mr-2 h-4 w-4" />
+          View details
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={handleDelete}
+          className="text-destructive"
+          disabled={isLoading || isDeleting}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          {isDeleting ? "Deleting..." : "Delete course"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 export const courseColumns: ColumnDef<Course>[] = [
   {
@@ -65,19 +156,7 @@ export const courseColumns: ColumnDef<Course>[] = [
       const course = row.original;
       return (
         <div className="flex items-center space-x-3">
-          {course.thumbnail ? (
-            <Image
-              src={course.thumbnail}
-              alt={course.title}
-              width={48}
-              height={48}
-              className="h-12 w-12 rounded-lg object-cover"
-            />
-          ) : (
-            <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
-              <BookOpen className="h-6 w-6" />
-            </div>
-          )}
+          <CourseImage course={course} />
           <div>
             <Link
               href={`/courses/${course.id}`}
@@ -131,48 +210,29 @@ export const courseColumns: ColumnDef<Course>[] = [
         return <Badge variant="secondary">Free</Badge>;
       }
 
+      // Đảm bảo price và discount là number, fallback 0 nếu undefined/null
+      const price =
+        typeof course.price === "number"
+          ? course.price
+          : Number(course.price) || 0;
+      const discount =
+        typeof course.discount === "number"
+          ? course.discount
+          : Number(course.discount) || 0;
+
       return (
         <div className="space-y-1">
-          <div className="font-medium">
-            {course.price ? `$${course.price}` : "N/A"}
-          </div>
-          {course.discount && course.discount > 0 && (
+          {discount > 0 ? (
             <div className="text-sm text-muted-foreground">
-              <span className="line-through">${course.price}</span>
-              <span className="ml-1 text-green-600">${course.discount}</span>
+              <p className="line-through">{price.toLocaleString("vi-VN")}₫</p>
+              <span className="text-green-600">
+                {discount.toLocaleString("vi-VN")}₫
+              </span>
             </div>
+          ) : (
+            <span>{price > 0 ? `${price.toLocaleString("vi-VN")}₫` : "-"}</span>
           )}
         </div>
-      );
-    },
-  },
-  {
-    accessorKey: "enrollmentCount",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Enrollments
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      );
-    },
-    cell: ({ row }) => {
-      const count = row.getValue("enrollmentCount") as number;
-      return <div className="font-medium">{count || 0}</div>;
-    },
-  },
-  {
-    accessorKey: "group",
-    header: "Category",
-    cell: ({ row }) => {
-      const group = row.getValue("group") as string;
-      return group ? (
-        <Badge variant="outline">{group}</Badge>
-      ) : (
-        <span className="text-muted-foreground">Uncategorized</span>
       );
     },
   },
@@ -201,43 +261,7 @@ export const courseColumns: ColumnDef<Course>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const course = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(course.slug)}
-            >
-              Copy course slug
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href={`/courses/${course.id}`}>
-                <Eye className="mr-2 h-4 w-4" />
-                View details
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/courses/${course.id}/edit`}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit course
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete course
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+      return <CourseActions course={course} />;
     },
   },
 ];

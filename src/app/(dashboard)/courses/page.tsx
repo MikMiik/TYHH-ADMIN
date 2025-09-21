@@ -1,15 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Plus,
-  Search,
-  Filter,
-  RefreshCw,
-  BookOpen,
-  Users,
-  Eye,
-} from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Search, Filter, RefreshCw } from "lucide-react";
 
 import { courseColumns } from "./columns";
 import { DataTable } from "./data-table";
@@ -29,24 +21,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
-import { useGetCoursesQuery, Course } from "@/lib/features/api/courseApi";
+import { useGetCoursesQuery, type Course } from "@/lib/features/api/courseApi";
 
-// Define course type for type safety - using imported Course type
+// Tham khảo quy tắc phát triển tại .github/development-instructions.md
 export default function CoursesPage() {
   const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "published" | "draft" | "archived" | "all"
-  >("all");
-  const [levelFilter, setLevelFilter] = useState<
-    "beginner" | "intermediate" | "advanced" | "all"
-  >("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [freeFilter, setFreeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  // API call với parameters
+  // API call với parameters - tương tự như users page
   const {
-    data: coursesData,
+    data: coursesResponse,
     isLoading,
     error,
     refetch,
@@ -54,33 +52,42 @@ export default function CoursesPage() {
     page,
     limit,
     search: searchValue || undefined,
-    teacherId: undefined,
   });
 
-  // Use real data from API
-  const displayData = coursesData?.courses || [];
-  const courses = coursesData?.courses || [];
-  const pagination = {
-    total: coursesData?.total || 0,
-    totalPages: coursesData?.totalPages || 0,
-    currentPage: coursesData?.currentPage || 1,
-  };
+  // Transform data similar to users page
+  const courses = useMemo(
+    () => coursesResponse?.courses || [],
+    [coursesResponse]
+  );
+  const pagination = useMemo(
+    () => ({
+      total: coursesResponse?.total || 0,
+      totalPages: coursesResponse?.totalPages || 0,
+      currentPage: coursesResponse?.currentPage || 1,
+    }),
+    [coursesResponse]
+  );
+
+  // Frontend filtering for group and free status
+  const filteredCourses = useMemo(() => {
+    return courses.filter((course: Course) => {
+      const matchesGroup =
+        groupFilter === "all" || course.group === groupFilter;
+      const matchesFree =
+        freeFilter === "all" ||
+        (freeFilter === "free" && course.isFree) ||
+        (freeFilter === "paid" && !course.isFree);
+
+      return matchesGroup && matchesFree;
+    });
+  }, [courses, groupFilter, freeFilter]);
 
   const handleClearFilters = () => {
     setSearchValue("");
-    setStatusFilter("all");
-    setLevelFilter("all");
+    setGroupFilter("all");
+    setFreeFilter("all");
     setPage(1);
   };
-
-  // Stats calculation
-  const totalCourses = pagination?.total || 0;
-  const publishedCourses = courses.filter(
-    (course: Course) => course.createdAt
-  ).length; // Simplified
-  const draftCourses = totalCourses - publishedCourses;
-  // Note: enrollmentCount không có trong BE model, sẽ cần tính từ course_user table
-  const totalEnrollments = 0; // TODO: Implement proper enrollment count from BE
 
   return (
     <div className="space-y-8">
@@ -106,70 +113,11 @@ export default function CoursesPage() {
             />
             Refresh
           </Button>
-          <Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Course
           </Button>
         </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalCourses.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All courses in system
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Published</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {publishedCourses.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">Live courses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Draft Courses</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {draftCourses.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">In development</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Enrollments
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalEnrollments.toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">Across all courses</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Search and Filters */}
@@ -185,54 +133,38 @@ export default function CoursesPage() {
             <div className="flex flex-1 items-center space-x-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search courses by title, teacher..."
+                placeholder="Search courses by title, description..."
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
                 className="max-w-sm"
               />
             </div>
 
-            <Select
-              value={statusFilter}
-              onValueChange={(value) =>
-                setStatusFilter(
-                  value as "published" | "draft" | "archived" | "all"
-                )
-              }
-            >
+            <Select value={groupFilter} onValueChange={setGroupFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="All Status" />
+                <SelectValue placeholder="All Groups" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
+                <SelectItem value="all">All Groups</SelectItem>
+                <SelectItem value="programming">Programming</SelectItem>
+                <SelectItem value="design">Design</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
+                <SelectItem value="marketing">Marketing</SelectItem>
               </SelectContent>
             </Select>
 
-            <Select
-              value={levelFilter}
-              onValueChange={(value) =>
-                setLevelFilter(
-                  value as "beginner" | "intermediate" | "advanced" | "all"
-                )
-              }
-            >
+            <Select value={freeFilter} onValueChange={setFreeFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="All Levels" />
+                <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
               </SelectContent>
             </Select>
 
-            {(searchValue ||
-              (statusFilter && statusFilter !== "all") ||
-              (levelFilter && levelFilter !== "all")) && (
+            {(searchValue || groupFilter !== "all" || freeFilter !== "all") && (
               <Button variant="outline" onClick={handleClearFilters}>
                 <Filter className="mr-2 h-4 w-4" />
                 Clear Filters
@@ -250,13 +182,13 @@ export default function CoursesPage() {
 
           <DataTable
             columns={courseColumns}
-            data={displayData}
+            data={filteredCourses}
             loading={isLoading}
             pagination={{
               pageIndex: page - 1,
               pageSize: limit,
-              pageCount: pagination?.totalPages || 0,
-              total: pagination?.total || 0,
+              pageCount: pagination.totalPages,
+              total: pagination.total,
             }}
             onPaginationChange={(updater: unknown) => {
               if (typeof updater === "function") {
@@ -270,6 +202,44 @@ export default function CoursesPage() {
           />
         </CardContent>
       </Card>
+
+      {/* Create Course Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Course</DialogTitle>
+            <DialogDescription>
+              Add a new course to the system. Fill in the basic information
+              below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="title" className="text-right">
+                Title
+              </Label>
+              <Input
+                id="title"
+                placeholder="Course title"
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <Input
+                id="description"
+                placeholder="Brief description"
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit">Create Course</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
