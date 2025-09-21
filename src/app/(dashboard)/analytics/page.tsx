@@ -58,26 +58,48 @@ export default function AnalyticsPage() {
     "30d"
   );
 
-  // API calls
+  // API calls - comment out non-existent endpoints for now
   const {
     data: contentAnalytics,
     isLoading: isLoadingContent,
     refetch: refetchContent,
-  } = useGetContentAnalyticsQuery({ range: timeRange });
+  } = useGetContentAnalyticsQuery({ range: timeRange }, { skip: true }); // Skip this API call
 
-  const { data: popularContent, isLoading: isLoadingPopular } =
-    useGetPopularContentQuery({ range: timeRange, limit: 5 });
+  const {
+    data: popularContent,
+    isLoading: isLoadingPopular,
+    error: popularError,
+  } = useGetPopularContentQuery({ range: timeRange, limit: 5 }, { skip: true }); // Skip this API call
 
-  const { data: engagementMetrics, isLoading: isLoadingEngagement } =
-    useGetEngagementMetricsQuery({ range: timeRange });
+  const {
+    data: engagementMetrics,
+    isLoading: isLoadingEngagement,
+    error: engagementError,
+  } = useGetEngagementMetricsQuery({ range: timeRange }, { skip: true }); // Skip this API call
 
-  const { data: viewsAnalytics, isLoading: isLoadingViews } =
-    useGetViewsAnalyticsQuery({ range: timeRange });
+  const {
+    data: viewsAnalytics,
+    isLoading: isLoadingViews,
+    error: viewsError,
+  } = useGetViewsAnalyticsQuery({ range: timeRange }, { skip: true }); // Skip this API call
 
-  const { data: userEngagement, isLoading: isLoadingUsers } =
-    useGetUserEngagementAnalyticsQuery({ range: timeRange });
+  const {
+    data: userEngagement,
+    isLoading: isLoadingUsers,
+    error: userError,
+  } = useGetUserEngagementAnalyticsQuery({ range: timeRange }, { skip: true }); // Skip this API call
 
   const isLoading = isLoadingContent || isLoadingPopular || isLoadingEngagement;
+
+  // Early return if critical errors
+  if (popularError || engagementError || viewsError || userError) {
+    console.error("Analytics API Errors:", {
+      popularError,
+      engagementError,
+      viewsError,
+      userError,
+    });
+  }
 
   const handleRefresh = () => {
     refetchContent();
@@ -447,31 +469,44 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {popularContent?.map((content, index) => (
-                  <div key={content.id} className="flex items-center space-x-4">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {content.title}
-                      </p>
-                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                        <span className="capitalize">{content.type}</span>
-                        <span>•</span>
-                        <span>{content.views.toLocaleString()} views</span>
-                        <span>•</span>
-                        <span>{content.likes.toLocaleString()} likes</span>
+                {popularContent && Array.isArray(popularContent) ? (
+                  popularContent.map((content, index) => (
+                    <div
+                      key={content?.id || index}
+                      className="flex items-center space-x-4"
+                    >
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {content?.title || "Unknown"}
+                        </p>
+                        <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                          <span className="capitalize">
+                            {content?.type || "N/A"}
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {(content?.views || 0).toLocaleString()} views
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {(content?.likes || 0).toLocaleString()} likes
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right text-sm">
+                        <div className="font-medium">
+                          {(content?.views || 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          views
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right text-sm">
-                      <div className="font-medium">
-                        {content.views.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">views</div>
-                    </div>
-                  </div>
-                )) ?? (
+                  ))
+                ) : (
                   <div className="text-center py-12">
                     <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground" />
                     <p className="mt-4 text-sm text-muted-foreground">

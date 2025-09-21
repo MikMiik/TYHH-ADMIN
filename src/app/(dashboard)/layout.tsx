@@ -13,14 +13,14 @@ export default async function DashboardLayout({
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
 
   return (
-    <ProtectedRoute>
-      <SidebarProvider defaultOpen={defaultOpen}>
-        <AppSidebar />
-        <main className="w-full">
-          <Navbar />
-          <div className="px-4">{children}</div>
-        </main>
-      </SidebarProvider>
-    </ProtectedRoute>
+    // <ProtectedRoute>
+    <SidebarProvider defaultOpen={defaultOpen}>
+      <AppSidebar />
+      <main className="w-full">
+        <Navbar />
+        <div className="px-4">{children}</div>
+      </main>
+    </SidebarProvider>
+    // </ProtectedRoute>
   );
 }

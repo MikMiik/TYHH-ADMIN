@@ -61,6 +61,12 @@ interface CoursesListResponse {
   total: number;
   currentPage: number;
   totalPages: number;
+  stats?: {
+    total: number;
+    free: number;
+    paid: number;
+    groups: number;
+  };
 }
 
 interface CreateCourseData {

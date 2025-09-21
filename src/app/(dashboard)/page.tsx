@@ -52,18 +52,30 @@ export default function Dashboard() {
   });
   const { data: documentsData } = useGetDocumentsQuery({ page: 1, limit: 1 });
 
-  // Get analytics data
-  const { data: contentAnalytics } = useGetContentAnalyticsQuery({
-    range: "30d",
-  });
-  const { data: popularContent } = useGetPopularContentQuery({
-    range: "7d",
-    limit: 5,
-  });
-  const { data: viewsAnalytics } = useGetViewsAnalyticsQuery({ range: "7d" });
-  const { data: userEngagement } = useGetUserEngagementAnalyticsQuery({
-    range: "7d",
-  });
+  // Get analytics data (temporarily skipped due to missing backend endpoints)
+  const { data: contentAnalytics } = useGetContentAnalyticsQuery(
+    {
+      range: "30d",
+    },
+    { skip: true }
+  );
+  const { data: popularContent } = useGetPopularContentQuery(
+    {
+      range: "7d",
+      limit: 5,
+    },
+    { skip: true }
+  );
+  const { data: viewsAnalytics } = useGetViewsAnalyticsQuery(
+    { range: "7d" },
+    { skip: true }
+  );
+  const { data: userEngagement } = useGetUserEngagementAnalyticsQuery(
+    {
+      range: "7d",
+    },
+    { skip: true }
+  );
 
   const totalUsers = usersData?.pagination?.total || 0;
   const totalCourses = coursesData?.total || 0;

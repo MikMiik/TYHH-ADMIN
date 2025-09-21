@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Plus, Search, Filter, RefreshCw } from "lucide-react";
 
 import { courseColumns } from "./columns";
-import { DataTable } from "./data-table";
+import { DataTableWithCard } from "@/components/ui/data-table-with-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -52,13 +53,23 @@ export default function CoursesPage() {
     page,
     limit,
     search: searchValue || undefined,
+    group: groupFilter !== "all" ? groupFilter : undefined,
+    isFree:
+      freeFilter === "free" ? true : freeFilter === "paid" ? false : undefined,
   });
 
   // Transform data similar to users page
-  const courses = useMemo(
-    () => coursesResponse?.courses || [],
-    [coursesResponse]
-  );
+  const courses = useMemo(() => {
+    const result = coursesResponse?.courses || [];
+    // Debug log to check data structure
+    if (result.length > 0) {
+      console.log("Sample course data:", result[0]);
+    }
+    if (coursesResponse?.stats) {
+      console.log("Stats from backend:", coursesResponse.stats);
+    }
+    return result;
+  }, [coursesResponse]);
   const pagination = useMemo(
     () => ({
       total: coursesResponse?.total || 0,
@@ -68,19 +79,46 @@ export default function CoursesPage() {
     [coursesResponse]
   );
 
-  // Frontend filtering for group and free status
-  const filteredCourses = useMemo(() => {
-    return courses.filter((course: Course) => {
-      const matchesGroup =
-        groupFilter === "all" || course.group === groupFilter;
-      const matchesFree =
-        freeFilter === "all" ||
-        (freeFilter === "free" && course.isFree) ||
-        (freeFilter === "paid" && !course.isFree);
+  // Use backend filtered data directly, no frontend filtering needed
+  const displayData = courses;
 
-      return matchesGroup && matchesFree;
-    });
-  }, [courses, groupFilter, freeFilter]);
+  // Calculate stats from current data
+  const stats = useMemo(() => {
+    // Use stats from backend if available, otherwise calculate from current data
+    if (coursesResponse?.stats) {
+      return {
+        total: Number(coursesResponse.stats.total) || 0,
+        free: Number(coursesResponse.stats.free) || 0,
+        paid: Number(coursesResponse.stats.paid) || 0,
+        groups: Number(coursesResponse.stats.groups) || 0,
+      };
+    }
+
+    // Fallback calculation (should not be used if BE provides stats)
+    if (!courses || !Array.isArray(courses)) {
+      return { total: 0, free: 0, paid: 0, groups: 0 };
+    }
+
+    const total = pagination.total || 0;
+    const free = courses.filter(
+      (course: Course) => course?.isFree === true
+    ).length;
+    const paid = courses.filter(
+      (course: Course) => course?.isFree === false
+    ).length;
+    const groups = [
+      ...new Set(
+        courses.map((course: Course) => course?.group).filter(Boolean)
+      ),
+    ].length;
+
+    return {
+      total: Number(total) || 0,
+      free: Number(free) || 0,
+      paid: Number(paid) || 0,
+      groups: Number(groups) || 0,
+    };
+  }, [courses, pagination.total, coursesResponse?.stats]);
 
   const handleClearFilters = () => {
     setSearchValue("");
@@ -89,14 +127,48 @@ export default function CoursesPage() {
     setPage(1);
   };
 
+  // Early returns for loading/error states
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Loading courses...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Courses API Error:", error);
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center text-destructive">
+              Error Loading Courses
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-sm text-muted-foreground">
+              There was an error loading the course data. Please try again.
+            </p>
+            <Button onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 p-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Course Management
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Courses</h1>
           <p className="text-muted-foreground">
             Manage courses, outlines, topics, and teacher assignments
           </p>
@@ -120,12 +192,72 @@ export default function CoursesPage() {
         </div>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {isLoading
+                ? "..."
+                : typeof stats.total === "number"
+                ? stats.total
+                : 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Free Courses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {isLoading
+                ? "..."
+                : typeof stats.free === "number"
+                ? stats.free
+                : 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Paid Courses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {isLoading
+                ? "..."
+                : typeof stats.paid === "number"
+                ? stats.paid
+                : 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {isLoading
+                ? "..."
+                : typeof stats.groups === "number"
+                ? stats.groups
+                : 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Search and Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Course List</CardTitle>
+          <CardTitle className="text-lg">Filters</CardTitle>
           <CardDescription>
-            Manage and monitor all courses in the system
+            Search and filter courses by various criteria
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -172,36 +304,63 @@ export default function CoursesPage() {
             )}
           </div>
 
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 mb-4">
-              <div className="text-sm text-red-800">
-                Error loading courses: {error.toString()}
-              </div>
+          {/* Active Filters Display */}
+          {(searchValue || groupFilter !== "all" || freeFilter !== "all") && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {searchValue && (
+                <Badge variant="secondary">Search: {searchValue}</Badge>
+              )}
+              {groupFilter !== "all" && (
+                <Badge variant="secondary">Group: {groupFilter}</Badge>
+              )}
+              {freeFilter !== "all" && (
+                <Badge variant="secondary">Type: {freeFilter}</Badge>
+              )}
             </div>
           )}
-
-          <DataTable
-            columns={courseColumns}
-            data={filteredCourses}
-            loading={isLoading}
-            pagination={{
-              pageIndex: page - 1,
-              pageSize: limit,
-              pageCount: pagination.totalPages,
-              total: pagination.total,
-            }}
-            onPaginationChange={(updater: unknown) => {
-              if (typeof updater === "function") {
-                const newState = updater({
-                  pageIndex: page - 1,
-                  pageSize: limit,
-                }) as { pageIndex: number; pageSize: number };
-                setPage(newState.pageIndex + 1);
-              }
-            }}
-          />
         </CardContent>
       </Card>
+
+      {/* Results Info */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div>
+          Showing {Array.isArray(displayData) ? displayData.length : 0} of{" "}
+          {typeof stats.total === "number" ? stats.total : 0} courses
+        </div>
+      </div>
+
+      {/* Data Table */}
+      <DataTableWithCard
+        columns={courseColumns}
+        data={displayData}
+        loading={isLoading}
+        error={
+          error
+            ? String(
+                typeof error === "string"
+                  ? error
+                  : error && typeof error === "object" && "message" in error
+                  ? (error as { message: string }).message
+                  : "An unexpected error occurred"
+              )
+            : null
+        }
+        pagination={{
+          pageIndex: page - 1,
+          pageSize: limit,
+          pageCount: pagination.totalPages,
+          total: pagination.total,
+        }}
+        onPaginationChange={(updater: unknown) => {
+          if (typeof updater === "function") {
+            const newState = updater({
+              pageIndex: page - 1,
+              pageSize: limit,
+            }) as { pageIndex: number; pageSize: number };
+            setPage(newState.pageIndex + 1);
+          }
+        }}
+      />
 
       {/* Create Course Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

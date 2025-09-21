@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Plus, Search, Filter, RefreshCw } from "lucide-react";
 
 import { userColumns } from "./columns";
-import { DataTable } from "./data-table";
+import { DataTableWithCard } from "@/components/ui/data-table-with-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -475,222 +475,232 @@ export default function UsersPage() {
       </div>
 
       {/* Data Table */}
-      <Card>
-        <CardContent className="p-0">
-          <DataTable columns={userColumns} data={displayData} />
-        </CardContent>
-      </Card>
+      <DataTableWithCard
+        columns={userColumns}
+        data={displayData}
+        loading={isLoading}
+      />
 
       {/* Add User Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>
-              Create a new user account. Fill in all required fields.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Full Name *</Label>
-              <Input
-                id="name"
-                value={newUser.name}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, name: e.target.value })
-                }
-                placeholder="Enter full name"
-              />
-              {formErrors.name && (
-                <span className="text-xs text-red-600">{formErrors.name}</span>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, email: e.target.value })
-                }
-                placeholder="Enter email address"
-              />
-              {formErrors.email && (
-                <span className="text-xs text-red-600">{formErrors.email}</span>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="username">Username *</Label>
-              <Input
-                id="username"
-                value={newUser.username}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, username: e.target.value })
-                }
-                placeholder="Enter username"
-              />
-              {formErrors.username && (
-                <span className="text-xs text-red-600">
-                  {formErrors.username}
-                </span>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={newUser.password}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, password: e.target.value })
-                }
-                placeholder="Enter password"
-              />
-              {formErrors.password && (
-                <span className="text-xs text-red-600">
-                  {formErrors.password}
-                </span>
-              )}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="role">Role *</Label>
-              <Select
-                value={newUser.role}
-                onValueChange={(value) =>
-                  setNewUser({
-                    ...newUser,
-                    role: value as "admin" | "teacher" | "user",
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Student</SelectItem>
-                  <SelectItem value="teacher">Teacher</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              {formErrors.role && (
-                <span className="text-xs text-red-600">{formErrors.role}</span>
-              )}
-            </div>
+        <DialogContent className="sm:max-w-[500px] p-0">
+          <div className="max-h-[90vh] overflow-y-auto rounded-lg custom-scrollbar">
+            <div className="p-6">
+              <DialogHeader>
+                <DialogTitle>Add New User</DialogTitle>
+                <DialogDescription>
+                  Create a new user account. Fill in all required fields.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    value={newUser.name}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, name: e.target.value })
+                    }
+                    placeholder="Enter full name"
+                  />
+                  {formErrors.name && (
+                    <span className="text-xs text-red-600">
+                      {formErrors.name}
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, email: e.target.value })
+                    }
+                    placeholder="Enter email address"
+                  />
+                  {formErrors.email && (
+                    <span className="text-xs text-red-600">
+                      {formErrors.email}
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="username">Username *</Label>
+                  <Input
+                    id="username"
+                    value={newUser.username}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, username: e.target.value })
+                    }
+                    placeholder="Enter username"
+                  />
+                  {formErrors.username && (
+                    <span className="text-xs text-red-600">
+                      {formErrors.username}
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, password: e.target.value })
+                    }
+                    placeholder="Enter password"
+                  />
+                  {formErrors.password && (
+                    <span className="text-xs text-red-600">
+                      {formErrors.password}
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="role">Role *</Label>
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value) =>
+                      setNewUser({
+                        ...newUser,
+                        role: value as "admin" | "teacher" | "user",
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Student</SelectItem>
+                      <SelectItem value="teacher">Teacher</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formErrors.role && (
+                    <span className="text-xs text-red-600">
+                      {formErrors.role}
+                    </span>
+                  )}
+                </div>
 
-            {/* Optional Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={newUser.phone}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, phone: e.target.value })
-                  }
-                  placeholder="Enter phone number"
-                />
-                {formErrors.phone && (
-                  <span className="text-xs text-red-600">
-                    {formErrors.phone}
-                  </span>
+                {/* Optional Fields */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={newUser.phone}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, phone: e.target.value })
+                      }
+                      placeholder="Enter phone number"
+                    />
+                    {formErrors.phone && (
+                      <span className="text-xs text-red-600">
+                        {formErrors.phone}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="yearOfBirth">Year of Birth</Label>
+                    <Input
+                      id="yearOfBirth"
+                      type="number"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                      value={newUser.yearOfBirth}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, yearOfBirth: e.target.value })
+                      }
+                      placeholder="Enter year of birth"
+                    />
+                    {formErrors.yearOfBirth && (
+                      <span className="text-xs text-red-600">
+                        {formErrors.yearOfBirth}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={newUser.city}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, city: e.target.value })
+                      }
+                      placeholder="Enter city"
+                    />
+                    {formErrors.city && (
+                      <span className="text-xs text-red-600">
+                        {formErrors.city}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="school">School</Label>
+                    <Input
+                      id="school"
+                      value={newUser.school}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, school: e.target.value })
+                      }
+                      placeholder="Enter school"
+                    />
+                    {formErrors.school && (
+                      <span className="text-xs text-red-600">
+                        {formErrors.school}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="facebook">Facebook URL</Label>
+                  <Input
+                    id="facebook"
+                    type="url"
+                    value={newUser.facebook}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, facebook: e.target.value })
+                    }
+                    placeholder="Enter Facebook URL (optional)"
+                  />
+                  {formErrors.facebook && (
+                    <span className="text-xs text-red-600">
+                      {formErrors.facebook}
+                    </span>
+                  )}
+                </div>
+                {serverError && (
+                  <div className="mb-2 text-red-600 text-sm font-medium text-center">
+                    {serverError}
+                  </div>
                 )}
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="yearOfBirth">Year of Birth</Label>
-                <Input
-                  id="yearOfBirth"
-                  type="number"
-                  min="1900"
-                  max={new Date().getFullYear()}
-                  value={newUser.yearOfBirth}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, yearOfBirth: e.target.value })
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCloseModal}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAddUser}
+                  disabled={
+                    !newUser.name ||
+                    !newUser.email ||
+                    !newUser.username ||
+                    !newUser.password ||
+                    isCreating
                   }
-                  placeholder="Enter year of birth"
-                />
-                {formErrors.yearOfBirth && (
-                  <span className="text-xs text-red-600">
-                    {formErrors.yearOfBirth}
-                  </span>
-                )}
-              </div>
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  {isCreating ? "Creating..." : "Create User"}
+                </Button>
+              </DialogFooter>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={newUser.city}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, city: e.target.value })
-                  }
-                  placeholder="Enter city"
-                />
-                {formErrors.city && (
-                  <span className="text-xs text-red-600">
-                    {formErrors.city}
-                  </span>
-                )}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="school">School</Label>
-                <Input
-                  id="school"
-                  value={newUser.school}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, school: e.target.value })
-                  }
-                  placeholder="Enter school"
-                />
-                {formErrors.school && (
-                  <span className="text-xs text-red-600">
-                    {formErrors.school}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="facebook">Facebook URL</Label>
-              <Input
-                id="facebook"
-                type="url"
-                value={newUser.facebook}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, facebook: e.target.value })
-                }
-                placeholder="Enter Facebook URL (optional)"
-              />
-              {formErrors.facebook && (
-                <span className="text-xs text-red-600">
-                  {formErrors.facebook}
-                </span>
-              )}
-            </div>
-            {serverError && (
-              <div className="mb-2 text-red-600 text-sm font-medium text-center">
-                {serverError}
-              </div>
-            )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseModal}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAddUser}
-              disabled={
-                !newUser.name ||
-                !newUser.email ||
-                !newUser.username ||
-                !newUser.password ||
-                isCreating
-              }
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              {isCreating ? "Creating..." : "Create User"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

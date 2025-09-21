@@ -16,14 +16,12 @@ import {
   ArrowUpDown,
   MoreHorizontal,
   BookOpen,
-  Edit,
   Eye,
   Trash2,
 } from "lucide-react";
 import { Course } from "@/lib/features/api/courseApi";
 import { format } from "date-fns";
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDeleteCourseMutation } from "@/lib/features/api/courseApi";
@@ -31,7 +29,7 @@ import { toast } from "sonner";
 
 // Course Image Component with placeholder fallback
 const CourseImage = ({ course }: { course: Course }) => {
-  const [imageError, setImageError] = useState(false);
+  const [imageError] = useState(false);
 
   if (!course.thumbnail || imageError) {
     return (
