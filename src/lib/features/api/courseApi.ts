@@ -11,6 +11,7 @@ export interface Course {
     id: number;
     name: string;
     email: string;
+    avatar?: string;
   };
   price?: number;
   discount?: number;
@@ -23,6 +24,17 @@ export interface Course {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+  // Relations from BE
+  outlines?: CourseOutline[];
+  topics?: Topic[];
+  students?: {
+    id: number;
+    name: string;
+    email: string;
+    CourseUser?: {
+      createdAt: string;
+    };
+  }[];
 }
 
 export interface CourseOutline {

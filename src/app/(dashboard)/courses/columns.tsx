@@ -59,7 +59,7 @@ const CourseActions = ({ course }: { course: Course }) => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleViewDetails = () => {
-    router.push(`/courses/${course.id}`);
+    router.push(`/courses/${course.slug}`);
   };
 
   const handleDelete = async () => {
@@ -157,7 +157,7 @@ export const courseColumns: ColumnDef<Course>[] = [
           <CourseImage course={course} />
           <div>
             <Link
-              href={`/courses/${course.id}`}
+              href={`/courses/${course.slug}`}
               className="font-medium hover:underline cursor-pointer"
             >
               {course.title}
