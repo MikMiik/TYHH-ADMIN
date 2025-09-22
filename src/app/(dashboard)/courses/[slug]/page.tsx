@@ -5,7 +5,6 @@ import {
   useDeleteCourseMutation,
 } from "@/lib/features/api/courseApi";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -31,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import React from "react";
+import ImageLazy from "@/components/ImageLazy";
 
 interface CourseDetailPageProps {
   params: Promise<{
@@ -235,12 +235,10 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                       <ImageIcon className="mr-2 h-4 w-4" />
                       Thumbnail
                     </h4>
-                    <Image
+                    <ImageLazy
                       src={course.thumbnail}
                       alt={course.title}
-                      width={200}
-                      height={128}
-                      className="w-full h-32 object-cover rounded border"
+                      className="object-cover rounded border"
                     />
                   </div>
                 )}
@@ -345,18 +343,28 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <DollarSign className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
                   <div className="space-y-1">
-                    {course.discount ? (
+                    {course.discount !== undefined &&
+                    course.discount !== null &&
+                    !isNaN(Number(course.discount)) ? (
                       <>
                         <p className="text-xs line-through text-muted-foreground">
-                          {course.price?.toLocaleString("vi-VN")}₫
+                          {course.price !== undefined &&
+                          course.price !== null &&
+                          !isNaN(Number(course.price))
+                            ? Number(course.price).toLocaleString("vi-VN") + "₫"
+                            : "-"}
                         </p>
                         <p className="text-xl font-bold text-green-600">
-                          {course.discount?.toLocaleString("vi-VN")}₫
+                          {Number(course.discount).toLocaleString("vi-VN")}₫
                         </p>
                       </>
                     ) : (
                       <p className="text-xl font-bold">
-                        {course.price?.toLocaleString("vi-VN")}₫
+                        {course.price !== undefined &&
+                        course.price !== null &&
+                        !isNaN(Number(course.price))
+                          ? Number(course.price).toLocaleString("vi-VN") + "₫"
+                          : "-"}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">Price</p>
