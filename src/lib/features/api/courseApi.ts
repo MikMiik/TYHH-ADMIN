@@ -84,13 +84,15 @@ interface CoursesListResponse {
 interface CreateCourseData {
   title: string;
   description?: string;
-  teacherId: number;
+  teacherId?: number;
   price?: number;
   discount?: number;
   isFree?: boolean;
   purpose?: string;
   group?: string;
   content?: string;
+  thumbnail?: string;
+  introVideo?: string;
 }
 
 export const courseApi = baseApi.injectEndpoints({

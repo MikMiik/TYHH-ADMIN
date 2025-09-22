@@ -17,6 +17,7 @@ export interface Livestream {
   courseOutline?: {
     id: number;
     title: string;
+    slug: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -34,13 +35,20 @@ interface LivestreamsListParams {
 }
 
 interface LivestreamsListResponse {
-  livestreams: Livestream[];
-  total: number;
-  currentPage: number;
-  totalPages: number;
+  items: Livestream[];
+  pagination: {
+    currentPage: number;
+    perPage: number;
+    total: number;
+    lastPage: number;
+  };
+  stats: {
+    total: number;
+    totalViews: number;
+  };
 }
 
-interface CreateLivestreamData {
+export interface CreateLivestreamData {
   title: string;
   slug?: string;
   courseId: number;
@@ -57,7 +65,11 @@ export const livestreamApi = baseApi.injectEndpoints({
         params,
       }),
       transformResponse: (response: ApiResponse<LivestreamsListResponse>) => 
-        response.data || { livestreams: [], total: 0, currentPage: 1, totalPages: 0 },
+        response.data || { 
+          items: [], 
+          pagination: { currentPage: 1, perPage: 10, total: 0, lastPage: 0 },
+          stats: { total: 0, totalViews: 0 }
+        },
       providesTags: ['Livestream'],
     }),
 

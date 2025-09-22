@@ -79,7 +79,7 @@ export default function Dashboard() {
 
   const totalUsers = usersData?.pagination?.total || 0;
   const totalCourses = coursesData?.total || 0;
-  const totalLivestreams = livestreamsData?.total || 0;
+  const totalLivestreams = livestreamsData?.stats?.total || 0;
   const totalDocuments = documentsData?.total || 0;
 
   // Transform data for charts
