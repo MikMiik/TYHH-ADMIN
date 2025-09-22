@@ -63,7 +63,7 @@ interface CoursesListParams {
   search?: string;
   teacherId?: number;
   isFree?: boolean;
-  group?: string;
+  topicId?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -73,11 +73,11 @@ interface CoursesListResponse {
   total: number;
   currentPage: number;
   totalPages: number;
+  topics?: Topic[];
   stats?: {
     total: number;
     free: number;
     paid: number;
-    groups: number;
   };
 }
 

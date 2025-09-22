@@ -37,7 +37,7 @@ import { useGetCoursesQuery, type Course } from "@/lib/features/api/courseApi";
 // Tham khảo quy tắc phát triển tại .github/development-instructions.md
 export default function CoursesPage() {
   const [searchValue, setSearchValue] = useState("");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [topicFilter, setTopicFilter] = useState<string>("all");
   const [freeFilter, setFreeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -53,7 +53,7 @@ export default function CoursesPage() {
     page,
     limit,
     search: searchValue || undefined,
-    group: groupFilter !== "all" ? groupFilter : undefined,
+    topicId: topicFilter !== "all" ? topicFilter : undefined,
     isFree:
       freeFilter === "free" ? true : freeFilter === "paid" ? false : undefined,
   });
@@ -90,13 +90,12 @@ export default function CoursesPage() {
         total: Number(coursesResponse.stats.total) || 0,
         free: Number(coursesResponse.stats.free) || 0,
         paid: Number(coursesResponse.stats.paid) || 0,
-        groups: Number(coursesResponse.stats.groups) || 0,
       };
     }
 
     // Fallback calculation (should not be used if BE provides stats)
     if (!courses || !Array.isArray(courses)) {
-      return { total: 0, free: 0, paid: 0, groups: 0 };
+      return { total: 0, free: 0, paid: 0 };
     }
 
     const total = pagination.total || 0;
@@ -106,23 +105,17 @@ export default function CoursesPage() {
     const paid = courses.filter(
       (course: Course) => course?.isFree === false
     ).length;
-    const groups = [
-      ...new Set(
-        courses.map((course: Course) => course?.group).filter(Boolean)
-      ),
-    ].length;
 
     return {
       total: Number(total) || 0,
       free: Number(free) || 0,
       paid: Number(paid) || 0,
-      groups: Number(groups) || 0,
     };
   }, [courses, pagination.total, coursesResponse?.stats]);
 
   const handleClearFilters = () => {
     setSearchValue("");
-    setGroupFilter("all");
+    setTopicFilter("all");
     setFreeFilter("all");
     setPage(1);
   };
@@ -238,15 +231,11 @@ export default function CoursesPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
+            <CardTitle className="text-sm font-medium">Topics</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {isLoading
-                ? "..."
-                : typeof stats.groups === "number"
-                ? stats.groups
-                : 0}
+              {isLoading ? "..." : coursesResponse?.topics?.length || 0}
             </div>
           </CardContent>
         </Card>
@@ -272,31 +261,32 @@ export default function CoursesPage() {
               />
             </div>
 
-            <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <Select value={topicFilter} onValueChange={setTopicFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="All Groups" />
+                <SelectValue placeholder="All Topics" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Groups</SelectItem>
-                <SelectItem value="programming">Programming</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="marketing">Marketing</SelectItem>
+                <SelectItem value="all">All Topics</SelectItem>
+                {coursesResponse?.topics?.map((topic) => (
+                  <SelectItem key={topic.id} value={topic.id.toString()}>
+                    {topic.title}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
             <Select value={freeFilter} onValueChange={setFreeFilter}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="All Types" />
+                <SelectValue placeholder="All Prices" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all">All Prices</SelectItem>
                 <SelectItem value="free">Free</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
               </SelectContent>
             </Select>
 
-            {(searchValue || groupFilter !== "all" || freeFilter !== "all") && (
+            {(searchValue || topicFilter !== "all" || freeFilter !== "all") && (
               <Button variant="outline" onClick={handleClearFilters}>
                 <Filter className="mr-2 h-4 w-4" />
                 Clear Filters
@@ -305,13 +295,18 @@ export default function CoursesPage() {
           </div>
 
           {/* Active Filters Display */}
-          {(searchValue || groupFilter !== "all" || freeFilter !== "all") && (
+          {(searchValue || topicFilter !== "all" || freeFilter !== "all") && (
             <div className="flex flex-wrap gap-2 mt-4">
               {searchValue && (
                 <Badge variant="secondary">Search: {searchValue}</Badge>
               )}
-              {groupFilter !== "all" && (
-                <Badge variant="secondary">Group: {groupFilter}</Badge>
+              {topicFilter !== "all" && (
+                <Badge variant="secondary">
+                  Topic:{" "}
+                  {coursesResponse?.topics?.find(
+                    (t) => t.id.toString() === topicFilter
+                  )?.title || topicFilter}
+                </Badge>
               )}
               {freeFilter !== "all" && (
                 <Badge variant="secondary">Type: {freeFilter}</Badge>
