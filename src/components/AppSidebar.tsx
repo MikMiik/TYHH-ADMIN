@@ -131,16 +131,6 @@ const AppSidebar = () => {
       ],
     },
     {
-      label: "Analytics",
-      items: [
-        {
-          title: "Content Analytics",
-          url: "/analytics",
-          icon: BarChart3,
-        },
-      ],
-    },
-    {
       label: "System",
       items: [
         {
