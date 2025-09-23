@@ -31,7 +31,7 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
           </div>
           <div className="min-w-0 flex-1">
             <Link
-              href={`/livestreams/${livestream.id}`}
+              href={`/livestreams/${livestream.slug}`}
               className="font-medium hover:underline cursor-pointer"
             >
               {livestream.title}
@@ -68,9 +68,7 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
       if (!courseOutline) {
         return <span className="text-muted-foreground">No chapter</span>;
       }
-      return (
-        <div className="font-medium">{courseOutline.title}</div>
-      );
+      return <div className="font-medium">{courseOutline.title}</div>;
     },
   },
   {
@@ -81,9 +79,7 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
       return (
         <div className="flex items-center space-x-1">
           <Eye className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">
-            {view.toLocaleString()}
-          </span>
+          <span className="font-medium">{view.toLocaleString()}</span>
         </div>
       );
     },
@@ -98,9 +94,9 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
       }
       return (
         <div className="max-w-[200px] truncate">
-          <a 
-            href={url} 
-            target="_blank" 
+          <a
+            href={url}
+            target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:underline"
           >
@@ -139,20 +135,18 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/livestreams/${livestream.id}`}>
-                View details
-              </Link>
+              <Link href={`/livestreams/${livestream.slug}`}>View details</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href={`/livestreams/${livestream.id}/edit`}>
+              <Link href={`/livestreams/${livestream.slug}/edit`}>
                 Edit livestream
               </Link>
             </DropdownMenuItem>
             {livestream.url && (
               <DropdownMenuItem asChild>
-                <a 
-                  href={livestream.url} 
-                  target="_blank" 
+                <a
+                  href={livestream.url}
+                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   Watch video
