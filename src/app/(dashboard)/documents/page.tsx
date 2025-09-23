@@ -31,7 +31,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { useGetDocumentsQuery, Document } from "@/lib/features/api/documentApi";
+import {
+  useGetDocumentsQuery,
+  useGetDocumentAnalyticsQuery,
+} from "@/lib/features/api/documentApi";
 
 export default function DocumentsPage() {
   const [searchValue, setSearchValue] = useState("");
@@ -60,17 +63,15 @@ export default function DocumentsPage() {
         : undefined,
   });
 
-  // TODO: Analytics data không có trong BE model, cần implement sau
-  // const { data: analytics } = useGetDocumentAnalyticsQuery();
-  const totalDocuments = documentsData?.total || 0;
-  const totalDownloads =
-    documentsData?.documents?.reduce(
-      (sum: number, doc: Document) => sum + doc.downloadCount,
-      0
-    ) || 0;
+  // Get analytics data (for future use)
+  const { data: analytics } = useGetDocumentAnalyticsQuery();
+  console.log("Document analytics:", analytics); // For debugging
+
+  const totalDocuments = documentsData?.pagination?.total || 0;
+  const totalDownloads = documentsData?.stats?.totalDownloads || 0;
 
   // Use real data from API
-  const displayData = documentsData?.documents || [];
+  const displayData = documentsData?.items || [];
 
   const handleClearFilters = () => {
     setSearchValue("");

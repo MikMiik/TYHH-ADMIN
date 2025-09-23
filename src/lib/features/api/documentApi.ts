@@ -13,6 +13,16 @@ export interface Document {
     id: number;
     title: string;
     slug: string;
+    course?: {
+      id: number;
+      title: string;
+      slug: string;
+    };
+    courseOutline?: {
+      id: number;
+      title: string;
+      slug: string;
+    };
   };
   createdAt: string;
   updatedAt: string;
@@ -30,10 +40,19 @@ export interface DocumentsListParams {
 }
 
 export interface DocumentsListResponse {
-  documents: Document[];
-  total: number;
-  currentPage: number;
-  totalPages: number;
+  items: Document[];
+  pagination: {
+    currentPage: number;
+    perPage: number;
+    total: number;
+    lastPage: number;
+  };
+  stats: {
+    total: number;
+    vip: number;
+    free: number;
+    totalDownloads: number;
+  };
 }
 
 interface CreateDocumentData {
@@ -50,6 +69,23 @@ interface UpdateDocumentData {
   title?: string;
   slug?: string;
   thumbnail?: string;
+}
+
+export interface DocumentAnalytics {
+  total: number;
+  vip: number;
+  free: number;
+  totalDownloads: number;
+  topDownloaded: Array<{
+    id: number;
+    title?: string;
+    slug?: string;
+    downloadCount: number;
+    vip: boolean;
+    livestream?: {
+      title: string;
+    };
+  }>;
 }
 
 export const documentApi = baseApi.injectEndpoints({
@@ -69,12 +105,16 @@ export const documentApi = baseApi.injectEndpoints({
         },
       }),
       transformResponse: (response: ApiResponse<DocumentsListResponse>) => 
-        response.data || { documents: [], total: 0, currentPage: 1, totalPages: 0 },
+        response.data || { 
+          items: [], 
+          pagination: { currentPage: 1, perPage: 10, total: 0, lastPage: 0 },
+          stats: { total: 0, vip: 0, free: 0, totalDownloads: 0 }
+        },
       providesTags: ["Document"],
     }),
 
-    // Get single document by ID
-    getDocument: builder.query<Document, number>({
+    // Get single document by ID or slug
+    getDocument: builder.query<Document, number | string>({
       query: (id) => `/admin/documents/${id}`,
       transformResponse: (response: ApiResponse<Document>) => {
         if (!response.data) {
@@ -149,6 +189,18 @@ export const documentApi = baseApi.injectEndpoints({
         "Document",
       ],
     }),
+
+    // Get documents analytics
+    getDocumentAnalytics: builder.query<DocumentAnalytics, void>({
+      query: () => "/admin/documents/analytics",
+      transformResponse: (response: ApiResponse<DocumentAnalytics>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to get analytics');
+        }
+        return response.data;
+      },
+      providesTags: ["Document"],
+    }),
   }),
 });
 
@@ -159,4 +211,5 @@ export const {
   useUpdateDocumentMutation,
   useDeleteDocumentMutation,
   useIncrementDownloadCountMutation,
+  useGetDocumentAnalyticsQuery,
 } = documentApi;

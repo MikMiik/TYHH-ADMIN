@@ -35,7 +35,7 @@ export const documentColumns: ColumnDef<Document>[] = [
           <div className="text-lg">{getFileIcon()}</div>
           <div className="min-w-0 flex-1">
             <Link
-              href={`/documents/${document.id}`}
+              href={`/documents/${document.slug || document.id}`}
               className="font-medium hover:underline cursor-pointer"
             >
               {document.title || "Untitled Document"}
@@ -72,6 +72,11 @@ export const documentColumns: ColumnDef<Document>[] = [
         <div>
           <div className="font-medium">{livestream.title}</div>
           <div className="text-sm text-muted-foreground">{livestream.slug}</div>
+          {livestream.course && (
+            <div className="text-xs text-muted-foreground">
+              Course: {livestream.course.title}
+            </div>
+          )}
         </div>
       );
     },
