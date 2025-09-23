@@ -19,6 +19,7 @@ export const baseApi = createApi({
     'DocumentCategory',
     'DocumentAnalytics',
     'Analytics',
+    'Dashboard',
     'Notification', 
     'SiteInfo',
     'Topic',

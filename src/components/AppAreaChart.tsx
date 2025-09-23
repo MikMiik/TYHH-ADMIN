@@ -8,6 +8,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { format, parse } from "date-fns";
 
 const chartConfig = {
   desktop: {
@@ -20,28 +21,37 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-];
+interface AppAreaChartProps {
+  title?: string;
+  data: Array<{
+    month: string;
+    desktop: number;
+    mobile: number;
+  }>;
+  config?: ChartConfig;
+}
 
-const AppAreaChart = () => {
+const AppAreaChart = ({
+  title = "Total Visitors",
+  data,
+  config = chartConfig,
+}: AppAreaChartProps) => {
   return (
     <div className="">
-      <h1 className="text-lg font-medium mb-6">Total Visitors</h1>
-      <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-        <AreaChart accessibilityLayer data={chartData}>
+      <h1 className="text-lg font-medium mb-6">{title}</h1>
+      <ChartContainer config={config} className="min-h-[200px] w-full">
+        <AreaChart accessibilityLayer data={data}>
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey="month"
             tickLine={false}
             tickMargin={10}
             axisLine={false}
-            tickFormatter={(value) => value.slice(0, 3)}
+            tickFormatter={(value) => {
+              // value: "2025-09" => "Sep" (en-US)
+              const parsed = parse(value + "-01", "yyyy-MM-dd", new Date());
+              return format(parsed, "MMM");
+            }}
           />
           <YAxis tickLine={false} tickMargin={10} axisLine={false} />
           <ChartTooltip content={<ChartTooltipContent />} />

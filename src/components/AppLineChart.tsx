@@ -7,15 +7,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "./ui/chart";
+import { format, parse } from "date-fns";
 
-const chartData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
-];
 const chartConfig = {
   desktop: {
     label: "Desktop",
@@ -27,12 +20,21 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const AppLineChart = () => {
+interface AppLineChartProps {
+  data: Array<{
+    month: string;
+    desktop: number;
+    mobile: number;
+  }>;
+  config?: ChartConfig;
+}
+
+const AppLineChart = ({ data, config = chartConfig }: AppLineChartProps) => {
   return (
-    <ChartContainer config={chartConfig} className="mt-6">
+    <ChartContainer config={config} className="mt-6">
       <LineChart
         accessibilityLayer
-        data={chartData}
+        data={data}
         margin={{
           left: 12,
           right: 12,
@@ -44,9 +46,20 @@ const AppLineChart = () => {
           tickLine={false}
           axisLine={false}
           tickMargin={8}
-          tickFormatter={(value) => value.slice(0, 3)}
+          tickFormatter={(value) => {
+            // value: "2025-09" => "Sep"
+            const parsed = parse(value + "-01", "yyyy-MM-dd", new Date());
+            return format(parsed, "MMM");
+          }}
         />
-        <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          allowDecimals={false}
+          domain={[0, 'dataMax']}
+          tickFormatter={(value) => Number.isInteger(value) ? value : ''}
+        />
         <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
         <Line
           dataKey="desktop"

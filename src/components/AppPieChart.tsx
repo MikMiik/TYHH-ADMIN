@@ -4,6 +4,8 @@ import { Label, Pie, PieChart } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "./ui/chart";
@@ -35,23 +37,31 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-const chartData = [
-  { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
-  { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
-  { browser: "firefox", visitors: 287, fill: "var(--color-firefox)" },
-  { browser: "edge", visitors: 173, fill: "var(--color-edge)" },
-  { browser: "other", visitors: 190, fill: "var(--color-other)" },
-];
+interface AppPieChartProps {
+  title?: string;
+  data: Array<{
+    name: string;
+    value: number;
+    fill: string;
+  }>;
+  config?: ChartConfig;
+  centerLabel?: string;
+}
 
-const AppPieChart = () => {
+const AppPieChart = ({
+  title,
+  data,
+  config = chartConfig,
+  centerLabel,
+}: AppPieChartProps) => {
   // If you don't use React compiler use useMemo hook to improve performance
-  const totalVisitors = chartData.reduce((acc, curr) => acc + curr.visitors, 0);
+  const totalValue = data.reduce((acc, curr) => acc + curr.value, 0);
 
   return (
     <div className="">
-      <h1 className="text-lg font-medium mb-6">Browser Usage</h1>
+      {title && <h1 className="text-lg font-medium mb-6">{title}</h1>}
       <ChartContainer
-        config={chartConfig}
+        config={config}
         className="mx-auto aspect-square max-h-[250px]"
       >
         <PieChart>
@@ -60,9 +70,9 @@ const AppPieChart = () => {
             content={<ChartTooltipContent hideLabel />}
           />
           <Pie
-            data={chartData}
-            dataKey="visitors"
-            nameKey="browser"
+            data={data}
+            dataKey="value"
+            nameKey="name"
             innerRadius={60}
             strokeWidth={5}
           >
@@ -81,14 +91,14 @@ const AppPieChart = () => {
                         y={viewBox.cy}
                         className="fill-foreground text-3xl font-bold"
                       >
-                        {totalVisitors.toLocaleString()}
+                        {totalValue.toLocaleString()}
                       </tspan>
                       <tspan
                         x={viewBox.cx}
                         y={(viewBox.cy || 0) + 24}
                         className="fill-muted-foreground"
                       >
-                        Visitors
+                        {centerLabel || "Total"}
                       </tspan>
                     </text>
                   );

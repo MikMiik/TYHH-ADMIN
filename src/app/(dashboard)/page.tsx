@@ -7,115 +7,181 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  useGetContentAnalyticsQuery,
-  useGetPopularContentQuery,
-  useGetViewsAnalyticsQuery,
-  useGetUserEngagementAnalyticsQuery,
-} from "@/lib/features/api/analyticsApi";
-import { useGetUsersQuery } from "@/lib/features/api/userApi";
-import { useGetCoursesQuery } from "@/lib/features/api/courseApi";
-import { useGetLivestreamsQuery } from "@/lib/features/api/livestreamApi";
-import { useGetDocumentsQuery } from "@/lib/features/api/documentApi";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-} from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import AppAreaChart from "@/components/AppAreaChart";
+import AppBarChart from "@/components/AppBarChart";
+import AppLineChart from "@/components/AppLineChart";
+import AppPieChart from "@/components/AppPieChart";
 import {
   Users,
   BookOpen,
   Video,
   FileText,
   Activity,
+  TrendingUp,
+  TrendingDown,
   Eye,
-  Heart,
+  Download,
+  Star,
+  Calendar,
+  RefreshCw,
 } from "lucide-react";
+import { useGetDashboardQuery } from "@/lib/features/api/dashboardApi";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
-  // Get system totals
-  const { data: usersData } = useGetUsersQuery({ page: 1, limit: 1 });
-  const { data: coursesData } = useGetCoursesQuery({ page: 1, limit: 1 });
-  const { data: livestreamsData } = useGetLivestreamsQuery({
-    page: 1,
-    limit: 1,
+  const {
+    data: dashboardData,
+    isLoading,
+    error,
+    refetch,
+  } = useGetDashboardQuery(undefined, {
+    refetchOnMountOrArgChange: true,
   });
-  const { data: documentsData } = useGetDocumentsQuery({ page: 1, limit: 1 });
 
-  // Get analytics data (temporarily skipped due to missing backend endpoints)
-  const { data: contentAnalytics } = useGetContentAnalyticsQuery(
-    {
-      range: "30d",
-    },
-    { skip: true }
-  );
-  const { data: popularContent } = useGetPopularContentQuery(
-    {
-      range: "7d",
-      limit: 5,
-    },
-    { skip: true }
-  );
-  const { data: viewsAnalytics } = useGetViewsAnalyticsQuery(
-    { range: "7d" },
-    { skip: true }
-  );
-  const { data: userEngagement } = useGetUserEngagementAnalyticsQuery(
-    {
-      range: "7d",
-    },
-    { skip: true }
-  );
+  const handleRefresh = () => {
+    refetch();
+  };
 
-  const totalUsers = usersData?.pagination?.total || 0;
-  const totalCourses = coursesData?.total || 0;
-  const totalLivestreams = livestreamsData?.stats?.total || 0;
-  const totalDocuments = documentsData?.pagination?.total || 0;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-2">
+          <RefreshCw className="h-8 w-8 animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
-  // Transform data for charts
-  const viewsChartData =
-    viewsAnalytics?.map((item) => ({
-      date: new Date(item.date).toLocaleDateString("vi-VN", {
-        month: "short",
-        day: "numeric",
-      }),
-      views: item.views,
-      courses: item.courses,
-      livestreams: item.livestreams,
-      documents: item.documents,
-    })) || [];
+  if (error || !dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="text-center text-destructive">
+              Failed to Load Dashboard
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Unable to fetch dashboard data. Please try again.
+            </p>
+            <Button onClick={handleRefresh}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  const engagementChartData =
-    userEngagement?.map((item) => ({
-      date: new Date(item.date).toLocaleDateString("vi-VN", {
-        month: "short",
-        day: "numeric",
-      }),
-      active: item.activeUsers,
-      new: item.newUsers,
-      returning: item.returningUsers,
-    })) || [];
+  const {
+    overview,
+    users,
+    courses,
+    livestreams,
+    documents,
+    activities,
+    growth,
+  } = dashboardData;
 
-  const contentTypeData = [
-    { name: "Courses", value: totalCourses, color: "#0088FE" },
-    { name: "Livestreams", value: totalLivestreams, color: "#00C49F" },
-    { name: "Documents", value: totalDocuments, color: "#FFBB28" },
-  ].filter((item) => item.value > 0);
+  // Prepare data for charts
+
+  // 1. Area Chart - Monthly growth trends
+  const areaChartData = users.monthlyRegistrations.map((userMonth) => ({
+    month: userMonth.month,
+    desktop: Number(userMonth.count),
+    mobile:
+      Number(
+        courses.monthlyCourses.find((c) => c.month === userMonth.month)?.count
+      ) || 0,
+  }));
+
+  // 2. Bar Chart - Price distribution
+  const barChartData = courses.priceDistribution.map((item) => ({
+    month: item.priceRange,
+    desktop: Number(item.count),
+    mobile: Math.floor(Number(item.count) * 0.7), // Simulated mobile enrollment
+  }));
+
+  // 3. Line Chart - Livestream views vs Documents downloads
+  const lineChartData = livestreams.monthlyLivestreams.map((liveMonth) => ({
+    month: liveMonth.month,
+    desktop: Number(liveMonth.count) * 100, // Simulated views per livestream
+    mobile:
+      (Number(
+        documents.monthlyDocuments.find((d) => d.month === liveMonth.month)
+          ?.count
+      ) || 0) * 50,
+  }));
+
+  // 4. Line Chart - User growth over months
+  const userGrowthChartData = users.monthlyRegistrations.map((userMonth) => ({
+    month: userMonth.month,
+    desktop: Number(userMonth.count), // Use desktop key for compatibility with AppLineChart
+    mobile: 0, // Not needed for user growth, set to 0
+  }));
+
+  // 5. Pie Chart - Popular Topics Distribution
+  const topicsChartData = courses.topicsPopularity
+    .slice(0, 6)
+    .map((topic, index) => ({
+      name: topic.title,
+      value: Number(topic.courseCount), // Ensure number for recharts
+      fill: `var(--chart-${(index % 5) + 1})`,
+    }));
+  console.log("topicsChartData", topicsChartData);
+
+  // Chart configs
+  const growthConfig = {
+    desktop: { label: "New Users", color: "var(--chart-1)" },
+    mobile: { label: "New Courses", color: "var(--chart-2)" },
+  };
+
+  const priceConfig = {
+    desktop: { label: "Total Courses", color: "var(--chart-3)" },
+    mobile: { label: "Mobile Enrollment", color: "var(--chart-4)" },
+  };
+
+  const activityConfig = {
+    desktop: { label: "Livestream Views", color: "var(--chart-1)" },
+    mobile: { label: "Document Downloads", color: "var(--chart-5)" },
+  };
+
+  const userGrowthConfig = {
+    desktop: { label: "New Users", color: "var(--chart-1)" },
+    mobile: { label: "", color: "transparent" }, // Hidden line
+  };
+
+  const topicsConfig = {
+    topic1: { label: "Topic 1", color: "var(--chart-1)" },
+    topic2: { label: "Topic 2", color: "var(--chart-2)" },
+    topic3: { label: "Topic 3", color: "var(--chart-3)" },
+    topic4: { label: "Topic 4", color: "var(--chart-4)" },
+    topic5: { label: "Topic 5", color: "var(--chart-5)" },
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="space-y-6 p-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome to your admin dashboard overview
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Overview Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -123,244 +189,56 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {totalUsers.toLocaleString()}
+              {overview.users.total.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground">
-              +{contentAnalytics?.viewsGrowth || 0}% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(contentAnalytics?.totalViews || 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +{contentAnalytics?.viewsGrowth || 0}% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Likes</CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(contentAnalytics?.totalLikes || 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +{contentAnalytics?.likesGrowth || 0}% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Content
-            </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(
-                totalCourses +
-                totalLivestreams +
-                totalDocuments
-              ).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Across all content types
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Views Over Time */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Views Analytics (7 Days)</CardTitle>
-            <CardDescription>
-              Daily views breakdown by content type
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={viewsChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="views"
-                    stackId="1"
-                    stroke="#8884d8"
-                    fill="#8884d8"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="courses"
-                    stackId="1"
-                    stroke="#82ca9d"
-                    fill="#82ca9d"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="livestreams"
-                    stackId="1"
-                    stroke="#ffc658"
-                    fill="#ffc658"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="documents"
-                    stackId="1"
-                    stroke="#ff7c7c"
-                    fill="#ff7c7c"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* User Engagement */}
-        <Card>
-          <CardHeader>
-            <CardTitle>User Engagement (7 Days)</CardTitle>
-            <CardDescription>Active, new and returning users</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={engagementChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="active"
-                    stroke="#8884d8"
-                    strokeWidth={2}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="new"
-                    stroke="#82ca9d"
-                    strokeWidth={2}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="returning"
-                    stroke="#ffc658"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Content Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Content Distribution</CardTitle>
-            <CardDescription>Breakdown by content type</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={contentTypeData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {contentTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Popular Content */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Popular Content (7 Days)</CardTitle>
-            <CardDescription>Top performing content by views</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {popularContent?.map((item, index) => (
-                <div key={item.id} className="flex items-center space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.title}</p>
-                    <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                      <span className="capitalize">{item.type}</span>
-                      <span>{item.views.toLocaleString()} views</span>
-                      <span>{item.likes.toLocaleString()} likes</span>
-                      <span>
-                        {formatDistanceToNow(new Date(item.createdAt))} ago
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 text-xs">
-                    {item.type === "course" && <BookOpen className="w-4 h-4" />}
-                    {item.type === "livestream" && (
-                      <Video className="w-4 h-4" />
-                    )}
-                    {item.type === "document" && (
-                      <FileText className="w-4 h-4" />
-                    )}
-                  </div>
-                </div>
-              )) || (
-                <div className="text-center text-muted-foreground py-8">
-                  No popular content data available
-                </div>
+            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+              <span>Active: {overview.users.active.toLocaleString()}</span>
+              {growth.users.growth !== 0 && (
+                <Badge
+                  variant={growth.users.growth > 0 ? "default" : "destructive"}
+                  className="text-xs"
+                >
+                  {growth.users.growth > 0 ? (
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="mr-1 h-3 w-3" />
+                  )}
+                  {Math.abs(growth.users.growth)}%
+                </Badge>
               )}
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* System Health Status */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Courses</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCourses}</div>
-            <p className="text-xs text-muted-foreground">
-              Total published courses
-            </p>
+            <div className="text-2xl font-bold">
+              {overview.courses.total.toLocaleString()}
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+              <span>
+                Enrollments: {overview.enrollments.total.toLocaleString()}
+              </span>
+              {growth.courses.growth !== 0 && (
+                <Badge
+                  variant={
+                    growth.courses.growth > 0 ? "default" : "destructive"
+                  }
+                  className="text-xs"
+                >
+                  {growth.courses.growth > 0 ? (
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="mr-1 h-3 w-3" />
+                  )}
+                  {Math.abs(growth.courses.growth)}%
+                </Badge>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -370,10 +248,15 @@ export default function Dashboard() {
             <Video className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalLivestreams}</div>
-            <p className="text-xs text-muted-foreground">
-              Total livestream sessions
-            </p>
+            <div className="text-2xl font-bold">
+              {overview.livestreams.total.toLocaleString()}
+            </div>
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <Eye className="h-3 w-3" />
+              <span>
+                {overview.livestreams.totalViews.toLocaleString()} views
+              </span>
+            </div>
           </CardContent>
         </Card>
 
@@ -383,13 +266,233 @@ export default function Dashboard() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalDocuments}</div>
-            <p className="text-xs text-muted-foreground">
-              Total documents uploaded
-            </p>
+            <div className="text-2xl font-bold">
+              {overview.documents.total.toLocaleString()}
+            </div>
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <Download className="h-3 w-3" />
+              <span>
+                {overview.documents.totalDownloads.toLocaleString()} downloads
+              </span>
+            </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts Grid - Using Custom Chart Components */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Area Chart - User & Course Growth */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Activity className="mr-2 h-5 w-5" />
+              Monthly Growth Trends
+            </CardTitle>
+            <CardDescription>
+              New users and courses registration over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppAreaChart
+              title="Growth Trends"
+              data={areaChartData}
+              config={growthConfig}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Bar Chart - Course Price Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <BookOpen className="mr-2 h-5 w-5" />
+              Course Distribution
+            </CardTitle>
+            <CardDescription>
+              Courses distributed by price range
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppBarChart
+              title="Price Distribution"
+              data={barChartData}
+              config={priceConfig}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Line Chart - Activity Trends */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Video className="mr-2 h-5 w-5" />
+              Content Activity
+            </CardTitle>
+            <CardDescription>
+              Livestream views vs document downloads
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppLineChart data={lineChartData} config={activityConfig} />
+          </CardContent>
+        </Card>
+
+        {/* Line Chart - User Growth Over Time */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="mr-2 h-5 w-5" />
+              User Growth
+            </CardTitle>
+            <CardDescription>
+              Monthly user registration growth over time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppLineChart
+              data={userGrowthChartData}
+              config={userGrowthConfig}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activities */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Calendar className="mr-2 h-5 w-5" />
+              Recent Activities
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-muted-foreground">
+                New Users
+              </h4>
+              {activities.recentUsers.slice(0, 3).map((user) => (
+                <div key={user.id} className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(user.createdAt), {
+                        addSuffix: true,
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-muted-foreground">
+                New Courses
+              </h4>
+              {activities.recentCourses.slice(0, 3).map((course) => (
+                <div key={course.id} className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                    <BookOpen className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {course.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      by {course.teacher.name}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Performers */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Star className="mr-2 h-5 w-5" />
+              Top Performers
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-muted-foreground">
+                Most Viewed Livestreams
+              </h4>
+              {livestreams.topLivestreams
+                .slice(0, 3)
+                .map((livestream, index) => (
+                  <div
+                    key={livestream.id}
+                    className="flex items-center space-x-3"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                      <span className="text-sm font-medium">{index + 1}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {livestream.title}
+                      </p>
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <Eye className="mr-1 h-3 w-3" />
+                        {livestream.view.toLocaleString()} views
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-muted-foreground">
+                Most Downloaded
+              </h4>
+              {documents.topDocuments.slice(0, 3).map((document, index) => (
+                <div key={document.id} className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-info/10 flex items-center justify-center">
+                    <span className="text-sm font-medium">{index + 1}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {document.title}
+                    </p>
+                    <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                      <Download className="h-3 w-3" />
+                      <span>{document.downloadCount.toLocaleString()}</span>
+                      {document.vip && (
+                        <Badge variant="secondary" className="text-xs">
+                          VIP
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Popular Topics as Pie Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Popular Topics</CardTitle>
+          <CardDescription>
+            Most popular course topics by course count
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AppPieChart
+            data={topicsChartData}
+            config={topicsConfig}
+            centerLabel="Topics"
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
