@@ -71,7 +71,7 @@ export const dashboardApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Get complete dashboard data
     getDashboard: builder.query<DashboardData, void>({
-      query: () => '/admin/dashboard',
+      query: () => '/dashboard',
       transformResponse: (response: ApiResponse<DashboardData>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get dashboard data');
@@ -83,7 +83,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
     // Get overview statistics
     getDashboardOverview: builder.query<OverviewStats, void>({
-      query: () => '/admin/dashboard/overview',
+      query: () => '/dashboard/overview',
       transformResponse: (response: ApiResponse<OverviewStats>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get overview stats');
@@ -95,7 +95,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
     // Get user analytics
     getDashboardUsers: builder.query<UserAnalytics, void>({
-      query: () => '/admin/dashboard/users',
+      query: () => '/dashboard/users',
       transformResponse: (response: ApiResponse<UserAnalytics>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get user analytics');
@@ -107,7 +107,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
     // Get course analytics
     getDashboardCourses: builder.query<CourseAnalytics, void>({
-      query: () => '/admin/dashboard/courses',
+      query: () => '/dashboard/courses',
       transformResponse: (response: ApiResponse<CourseAnalytics>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get course analytics');
@@ -119,7 +119,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
     // Get livestream analytics
     getDashboardLivestreams: builder.query<LivestreamAnalytics, void>({
-      query: () => '/admin/dashboard/livestreams',
+      query: () => '/dashboard/livestreams',
       transformResponse: (response: ApiResponse<LivestreamAnalytics>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get livestream analytics');
@@ -131,7 +131,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
     // Get document analytics
     getDashboardDocuments: builder.query<DocumentAnalytics, void>({
-      query: () => '/admin/dashboard/documents',
+      query: () => '/dashboard/documents',
       transformResponse: (response: ApiResponse<DocumentAnalytics>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get document analytics');
@@ -143,7 +143,7 @@ export const dashboardApi = baseApi.injectEndpoints({
 
     // Get growth analytics
     getDashboardGrowth: builder.query<GrowthAnalytics, void>({
-      query: () => '/admin/dashboard/growth',
+      query: () => '/dashboard/growth',
       transformResponse: (response: ApiResponse<GrowthAnalytics>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get growth analytics');

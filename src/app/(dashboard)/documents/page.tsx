@@ -65,7 +65,6 @@ export default function DocumentsPage() {
 
   // Get analytics data (for future use)
   const { data: analytics } = useGetDocumentAnalyticsQuery();
-  console.log("Document analytics:", analytics); // For debugging
 
   const totalDocuments = documentsData?.pagination?.total || 0;
   const totalDownloads = documentsData?.stats?.totalDownloads || 0;

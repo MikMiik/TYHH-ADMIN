@@ -133,7 +133,6 @@ export default function Dashboard() {
       value: Number(topic.courseCount), // Ensure number for recharts
       fill: `var(--chart-${(index % 5) + 1})`,
     }));
-  console.log("topicsChartData", topicsChartData);
 
   // Chart configs
   const growthConfig = {

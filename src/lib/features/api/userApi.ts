@@ -36,7 +36,7 @@ export const userApi = baseApi.injectEndpoints({
     // Lấy danh sách users với pagination và filters
     getUsers: builder.query<UsersListResponse, UsersListParams>({
       query: (params = {}) => ({
-        url: '/admin/users',
+        url: '/users',
         params,
       }),
       transformResponse: (response: ApiResponse<UsersListResponse>) => 
@@ -54,7 +54,7 @@ export const userApi = baseApi.injectEndpoints({
 
     // Lấy thông tin chi tiết 1 user
     getUser: builder.query<User, number | string>({
-      query: (id) => `/admin/users/${id}`,
+      query: (id) => `/users/${id}`,
       transformResponse: (response: ApiResponse<User>) => {
         if (!response.data) {
           throw new Error(response.message || 'User not found');
@@ -66,7 +66,7 @@ export const userApi = baseApi.injectEndpoints({
 
     // Lấy thông tin chi tiết user theo username
     getUserByUsername: builder.query<User, string>({
-      query: (username) => `/admin/users/username/${username}`,
+      query: (username) => `/users/username/${username}`,
       transformResponse: (response: ApiResponse<User>) => {
         if (!response.data) {
           throw new Error(response.message || 'User not found');
@@ -79,7 +79,7 @@ export const userApi = baseApi.injectEndpoints({
     // Tạo user mới
     createUser: builder.mutation<User, Partial<User>>({
       query: (userData) => ({
-        url: '/admin/users',
+        url: '/users',
         method: 'POST',
         body: userData,
       }),
@@ -95,7 +95,7 @@ export const userApi = baseApi.injectEndpoints({
     // Cập nhật user
     updateUser: builder.mutation<User, { id: number | string; data: UpdateUserData }>({
       query: ({ id, data }) => ({
-        url: `/admin/users/${id}`,
+        url: `/users/${id}`,
         method: 'PUT', 
         body: data,
       }),
@@ -111,7 +111,7 @@ export const userApi = baseApi.injectEndpoints({
     // Xóa user (soft delete)
     deleteUser: builder.mutation<{ success: boolean }, number | string>({
       query: (id) => ({
-        url: `/admin/users/${id}`,
+        url: `/users/${id}`,
         method: 'DELETE',
       }),
       transformResponse: (response: ApiResponse) => ({ success: response.success }),
@@ -121,7 +121,7 @@ export const userApi = baseApi.injectEndpoints({
     // Toggle user status (active/inactive)
     toggleUserStatus: builder.mutation<User, { id: number | string; activeKey: boolean }>({
       query: ({ id, activeKey }) => ({
-        url: `/admin/users/${id}/status`,
+        url: `/users/${id}/status`,
         method: 'PATCH',
         body: { activeKey },
       }),
@@ -137,7 +137,7 @@ export const userApi = baseApi.injectEndpoints({
     // Bulk operations
     bulkUpdateUsers: builder.mutation<{ updated: number }, { ids: number[]; data: UpdateUserData }>({
       query: ({ ids, data }) => ({
-        url: '/admin/users/bulk',
+        url: '/users/bulk',
         method: 'PATCH',
         body: { ids, data },
       }),
@@ -149,7 +149,7 @@ export const userApi = baseApi.injectEndpoints({
     // Set user key
     setUserKey: builder.mutation<User, { id: number | string; key?: string }>({
       query: ({ id, key }) => ({
-        url: `/admin/users/${id}/set-key`,
+        url: `/users/${id}/set-key`,
         method: 'POST',
         body: { key },
       }),
@@ -165,7 +165,7 @@ export const userApi = baseApi.injectEndpoints({
     // Send verification email
     sendVerificationEmail: builder.mutation<{ message: string; email: string }, number | string>({
       query: (id) => ({
-        url: `/admin/users/${id}/send-verification`,
+        url: `/users/${id}/send-verification`,
         method: 'POST',
       }),
       transformResponse: (response: ApiResponse<{ message: string; email: string }>) => {

@@ -93,7 +93,7 @@ export const documentApi = baseApi.injectEndpoints({
     // Get all documents with pagination
     getDocuments: builder.query<DocumentsListResponse, DocumentsListParams>({
       query: (params = {}) => ({
-        url: "/admin/documents",
+        url: "/documents",
         params: {
           page: params.page || 1,
           limit: params.limit || 10,
@@ -115,7 +115,7 @@ export const documentApi = baseApi.injectEndpoints({
 
     // Get single document by ID or slug
     getDocument: builder.query<Document, number | string>({
-      query: (id) => `/admin/documents/${id}`,
+      query: (id) => `/documents/${id}`,
       transformResponse: (response: ApiResponse<Document>) => {
         if (!response.data) {
           throw new Error(response.message || 'Document not found');
@@ -128,7 +128,7 @@ export const documentApi = baseApi.injectEndpoints({
     // Create new document
     createDocument: builder.mutation<Document, CreateDocumentData>({
       query: (data) => ({
-        url: "/admin/documents",
+        url: "/documents",
         method: "POST",
         body: data,
       }),
@@ -144,7 +144,7 @@ export const documentApi = baseApi.injectEndpoints({
     // Update document
     updateDocument: builder.mutation<Document, { id: number; data: UpdateDocumentData }>({
       query: ({ id, data }) => ({
-        url: `/admin/documents/${id}`,
+        url: `/documents/${id}`,
         method: "PUT",
         body: data,
       }),
@@ -163,7 +163,7 @@ export const documentApi = baseApi.injectEndpoints({
     // Delete document
     deleteDocument: builder.mutation<void, number>({
       query: (id) => ({
-        url: `/admin/documents/${id}`,
+        url: `/documents/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: (result, error, id) => [
@@ -175,7 +175,7 @@ export const documentApi = baseApi.injectEndpoints({
     // Increment download count
     incrementDownloadCount: builder.mutation<Document, number>({
       query: (id) => ({
-        url: `/admin/documents/${id}/download`,
+        url: `/documents/${id}/download`,
         method: "POST",
       }),
       transformResponse: (response: ApiResponse<Document>) => {
@@ -192,7 +192,7 @@ export const documentApi = baseApi.injectEndpoints({
 
     // Get documents analytics
     getDocumentAnalytics: builder.query<DocumentAnalytics, void>({
-      query: () => "/admin/documents/analytics",
+      query: () => "/documents/analytics",
       transformResponse: (response: ApiResponse<DocumentAnalytics>) => {
         if (!response.data) {
           throw new Error(response.message || 'Failed to get analytics');

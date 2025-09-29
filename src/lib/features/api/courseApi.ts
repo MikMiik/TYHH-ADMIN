@@ -100,7 +100,7 @@ export const courseApi = baseApi.injectEndpoints({
     // Lấy danh sách courses với pagination và filters
     getCourses: builder.query<CoursesListResponse, CoursesListParams>({
       query: (params = {}) => ({
-        url: '/admin/courses',
+        url: '/courses',
         params,
       }),
       transformResponse: (response: ApiResponse<CoursesListResponse>) => 
@@ -110,7 +110,7 @@ export const courseApi = baseApi.injectEndpoints({
 
     // Lấy thông tin chi tiết 1 course
     getCourse: builder.query<Course, number | string>({
-      query: (id) => `/admin/courses/${id}`,
+      query: (id) => `/courses/${id}`,
       transformResponse: (response: ApiResponse<Course>) => {
         if (!response.data) {
           throw new Error(response.message || 'Course not found');
@@ -123,7 +123,7 @@ export const courseApi = baseApi.injectEndpoints({
     // Tạo course mới
     createCourse: builder.mutation<Course, CreateCourseData>({
       query: (courseData) => ({
-        url: '/admin/courses',
+        url: '/courses',
         method: 'POST',
         body: courseData,
       }),
@@ -139,7 +139,7 @@ export const courseApi = baseApi.injectEndpoints({
     // Cập nhật course
     updateCourse: builder.mutation<Course, { id: number | string; data: Partial<CreateCourseData> }>({
       query: ({ id, data }) => ({
-        url: `/admin/courses/${id}`,
+        url: `/courses/${id}`,
         method: 'PUT',
         body: data,
       }),
@@ -155,7 +155,7 @@ export const courseApi = baseApi.injectEndpoints({
     // Xóa course (soft delete)
     deleteCourse: builder.mutation<{ success: boolean }, number | string>({
       query: (id) => ({
-        url: `/admin/courses/${id}`,
+        url: `/courses/${id}`,
         method: 'DELETE',
       }),
       transformResponse: (response: ApiResponse) => ({ success: response.success }),
@@ -164,7 +164,7 @@ export const courseApi = baseApi.injectEndpoints({
 
     // Lấy course outlines
     getCourseOutlines: builder.query<CourseOutline[], number | string>({
-      query: (courseId) => `/admin/courses/${courseId}/outlines`,
+      query: (courseId) => `/courses/${courseId}/outlines`,
       transformResponse: (response: ApiResponse<CourseOutline[]>) => 
         response.data || [],
       providesTags: ['Course'],
@@ -173,7 +173,7 @@ export const courseApi = baseApi.injectEndpoints({
     // Tạo course outline
     createCourseOutline: builder.mutation<CourseOutline, { courseId: number | string; title: string }>({
       query: ({ courseId, title }) => ({
-        url: `/admin/courses/${courseId}/outlines`,
+        url: `/courses/${courseId}/outlines`,
         method: 'POST',
         body: { title },
       }),
@@ -188,7 +188,7 @@ export const courseApi = baseApi.injectEndpoints({
 
     // Lấy danh sách topics
     getTopics: builder.query<Topic[], void>({
-      query: () => '/admin/topics',
+      query: () => '/topics',
       transformResponse: (response: ApiResponse<Topic[]>) => response.data || [],
       providesTags: ['Topic'],
     }),
@@ -196,7 +196,7 @@ export const courseApi = baseApi.injectEndpoints({
     // Tạo topic mới
     createTopic: builder.mutation<Topic, { title: string }>({
       query: ({ title }) => ({
-        url: '/admin/topics',
+        url: '/topics',
         method: 'POST',
         body: { title },
       }),
@@ -212,7 +212,7 @@ export const courseApi = baseApi.injectEndpoints({
     // Assign topics to course
     assignCourseTopics: builder.mutation<{ success: boolean }, { courseId: number; topicIds: number[] }>({
       query: ({ courseId, topicIds }) => ({
-        url: `/admin/courses/${courseId}/topics`,
+        url: `/courses/${courseId}/topics`,
         method: 'POST',
         body: { topicIds },
       }),

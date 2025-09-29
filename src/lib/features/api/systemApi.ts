@@ -65,12 +65,12 @@ export const systemApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Site Settings Management
     getSiteSettings: builder.query<SiteInfo[], void>({
-      query: () => '/admin/system/settings',
+      query: () => '/system/settings',
       providesTags: ['SiteInfo'],
     }),
 
     getSiteSetting: builder.query<SiteInfo, string>({
-      query: (key) => `/admin/system/settings/${key}`,
+      query: (key) => `/system/settings/${key}`,
       providesTags: (result, error, key) => [
         { type: 'SiteInfo', id: key },
       ],
@@ -78,7 +78,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     updateSiteSetting: builder.mutation<SiteInfo, { key: string; value: string }>({
       query: ({ key, value }) => ({
-        url: `/admin/system/settings/${key}`,
+        url: `/system/settings/${key}`,
         method: 'PUT',
         body: { value },
       }),
@@ -90,7 +90,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     createSiteSetting: builder.mutation<SiteInfo, { key: string; value: string }>({
       query: ({ key, value }) => ({
-        url: '/admin/system/settings',
+        url: '/system/settings',
         method: 'POST',
         body: { key, value },
       }),
@@ -99,7 +99,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     deleteSiteSetting: builder.mutation<void, string>({
       query: (key) => ({
-        url: `/admin/system/settings/${key}`,
+        url: `/system/settings/${key}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['SiteInfo'],
@@ -107,13 +107,13 @@ export const systemApi = baseApi.injectEndpoints({
 
     // Social Links Management
     getSocialLinks: builder.query<Social[], void>({
-      query: () => '/admin/system/socials',
+      query: () => '/system/socials',
       providesTags: ['Social'],
     }),
 
     createSocialLink: builder.mutation<Social, { platform: string; url: string }>({
       query: (data) => ({
-        url: '/admin/system/socials',
+        url: '/system/socials',
         method: 'POST',
         body: data,
       }),
@@ -122,7 +122,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     updateSocialLink: builder.mutation<Social, { id: string; platform: string; url: string }>({
       query: ({ id, ...data }) => ({
-        url: `/admin/system/socials/${id}`,
+        url: `/system/socials/${id}`,
         method: 'PUT',
         body: data,
       }),
@@ -131,7 +131,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     deleteSocialLink: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/admin/system/socials/${id}`,
+        url: `/system/socials/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Social'],
@@ -139,13 +139,13 @@ export const systemApi = baseApi.injectEndpoints({
 
     // Cities Management
     getCities: builder.query<City[], void>({
-      query: () => '/admin/system/cities',
+      query: () => '/system/cities',
       providesTags: ['City'],
     }),
 
     createCity: builder.mutation<City, { name: string }>({
       query: (data) => ({
-        url: '/admin/system/cities',
+        url: '/system/cities',
         method: 'POST',
         body: data,
       }),
@@ -154,7 +154,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     updateCity: builder.mutation<City, { id: string; name: string }>({
       query: ({ id, ...data }) => ({
-        url: `/admin/system/cities/${id}`,
+        url: `/system/cities/${id}`,
         method: 'PUT',
         body: data,
       }),
@@ -163,7 +163,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     deleteCity: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/admin/system/cities/${id}`,
+        url: `/system/cities/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['City'],
@@ -172,7 +172,7 @@ export const systemApi = baseApi.injectEndpoints({
     // Schools Management
     getSchools: builder.query<School[], { cityId?: string }>({
       query: ({ cityId }) => ({
-        url: '/admin/system/schools',
+        url: '/system/schools',
         params: { cityId },
       }),
       providesTags: ['School'],
@@ -180,7 +180,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     createSchool: builder.mutation<School, { name: string; cityId: string }>({
       query: (data) => ({
-        url: '/admin/system/schools',
+        url: '/system/schools',
         method: 'POST',
         body: data,
       }),
@@ -189,7 +189,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     updateSchool: builder.mutation<School, { id: string; name: string; cityId: string }>({
       query: ({ id, ...data }) => ({
-        url: `/admin/system/schools/${id}`,
+        url: `/system/schools/${id}`,
         method: 'PUT',
         body: data,
       }),
@@ -198,7 +198,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     deleteSchool: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/admin/system/schools/${id}`,
+        url: `/system/schools/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['School'],
@@ -217,7 +217,7 @@ export const systemApi = baseApi.injectEndpoints({
       type?: string;
     }>({
       query: ({ page = 1, limit = 20, status, type }) => ({
-        url: '/admin/system/jobs',
+        url: '/system/jobs',
         params: { page, limit, status, type },
       }),
       providesTags: ['Job'],
@@ -225,7 +225,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     retryBackgroundJob: builder.mutation<BackgroundJob, string>({
       query: (id) => ({
-        url: `/admin/system/jobs/${id}/retry`,
+        url: `/system/jobs/${id}/retry`,
         method: 'POST',
       }),
       invalidatesTags: ['Job'],
@@ -233,7 +233,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     deleteBackgroundJob: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/admin/system/jobs/${id}`,
+        url: `/system/jobs/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Job'],
@@ -241,7 +241,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     clearFailedJobs: builder.mutation<void, void>({
       query: () => ({
-        url: '/admin/system/jobs/clear-failed',
+        url: '/system/jobs/clear-failed',
         method: 'DELETE',
       }),
       invalidatesTags: ['Job'],
@@ -249,13 +249,13 @@ export const systemApi = baseApi.injectEndpoints({
 
     // Notification Management
     getNotificationTemplates: builder.query<NotificationTemplate[], void>({
-      query: () => '/admin/system/notifications/templates',
+      query: () => '/system/notifications/templates',
       providesTags: ['Notification'],
     }),
 
     createNotificationTemplate: builder.mutation<NotificationTemplate, Omit<NotificationTemplate, 'id' | 'createdAt' | 'updatedAt'>>({
       query: (data) => ({
-        url: '/admin/system/notifications/templates',
+        url: '/system/notifications/templates',
         method: 'POST',
         body: data,
       }),
@@ -264,7 +264,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     updateNotificationTemplate: builder.mutation<NotificationTemplate, { id: string } & Partial<NotificationTemplate>>({
       query: ({ id, ...data }) => ({
-        url: `/admin/system/notifications/templates/${id}`,
+        url: `/system/notifications/templates/${id}`,
         method: 'PUT',
         body: data,
       }),
@@ -273,7 +273,7 @@ export const systemApi = baseApi.injectEndpoints({
 
     deleteNotificationTemplate: builder.mutation<void, string>({
       query: (id) => ({
-        url: `/admin/system/notifications/templates/${id}`,
+        url: `/system/notifications/templates/${id}`,
         method: 'DELETE',
       }),
       invalidatesTags: ['Notification'],
@@ -289,7 +289,7 @@ export const systemApi = baseApi.injectEndpoints({
       scheduledAt?: string;
     }>({
       query: (data) => ({
-        url: '/admin/system/notifications/send',
+        url: '/system/notifications/send',
         method: 'POST',
         body: data,
       }),

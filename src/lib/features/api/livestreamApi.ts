@@ -61,7 +61,7 @@ export const livestreamApi = baseApi.injectEndpoints({
     // Lấy danh sách livestreams với pagination và filters
     getLivestreams: builder.query<LivestreamsListResponse, LivestreamsListParams>({
       query: (params = {}) => ({
-        url: '/admin/livestreams',
+        url: '/livestreams',
         params,
       }),
       transformResponse: (response: ApiResponse<LivestreamsListResponse>) => 
@@ -75,7 +75,7 @@ export const livestreamApi = baseApi.injectEndpoints({
 
     // Lấy thông tin chi tiết 1 livestream
     getLivestream: builder.query<Livestream, number | string>({
-      query: (id) => `/admin/livestreams/${id}`,
+      query: (id) => `/livestreams/${id}`,
       transformResponse: (response: ApiResponse<Livestream>) => {
         if (!response.data) {
           throw new Error(response.message || 'Livestream not found');
@@ -88,7 +88,7 @@ export const livestreamApi = baseApi.injectEndpoints({
     // Tạo livestream mới
     createLivestream: builder.mutation<Livestream, CreateLivestreamData>({
       query: (data) => ({
-        url: '/admin/livestreams',
+        url: '/livestreams',
         method: 'POST',
         body: data,
       }),
@@ -104,7 +104,7 @@ export const livestreamApi = baseApi.injectEndpoints({
     // Cập nhật thông tin livestream
     updateLivestream: builder.mutation<Livestream, { id: number; data: Partial<CreateLivestreamData> }>({
       query: ({ id, data }) => ({
-        url: `/admin/livestreams/${id}`,
+        url: `/livestreams/${id}`,
         method: 'PUT',
         body: data,
       }),
@@ -123,7 +123,7 @@ export const livestreamApi = baseApi.injectEndpoints({
     // Xóa livestream
     deleteLivestream: builder.mutation<{ message: string }, number>({
       query: (id) => ({
-        url: `/admin/livestreams/${id}`,
+        url: `/livestreams/${id}`,
         method: 'DELETE',
       }),
       transformResponse: (response: ApiResponse<{ message: string }>) => {
@@ -141,7 +141,7 @@ export const livestreamApi = baseApi.injectEndpoints({
       { id: number; status: 'scheduled' | 'live' | 'ended' | 'cancelled' }
     >({
       query: ({ id, status }) => ({
-        url: `/admin/livestreams/${id}/status`,
+        url: `/livestreams/${id}/status`,
         method: 'PATCH',
         body: { status },
       }),
@@ -165,7 +165,7 @@ export const livestreamApi = baseApi.injectEndpoints({
       totalViews: number;
       averageViewTime: number;
     }, void>({
-      query: () => '/admin/livestreams/analytics',
+      query: () => '/livestreams/analytics',
       transformResponse: (response: ApiResponse<{
         totalLivestreams: number;
         liveLivestreams: number;
