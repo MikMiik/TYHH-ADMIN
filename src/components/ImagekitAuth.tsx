@@ -53,7 +53,7 @@ const ImageKitUploader: React.FC<ImageKitUploaderProps> = ({
   children,
   onUploadSuccess,
   onUploadError,
-  baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api",
+  baseUrl = process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001/api",
 }) => {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);

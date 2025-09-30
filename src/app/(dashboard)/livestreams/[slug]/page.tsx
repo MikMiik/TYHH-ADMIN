@@ -3,10 +3,12 @@
 import {
   useGetLivestreamQuery,
   useDeleteLivestreamMutation,
+  useUpdateLivestreamMutation,
 } from "@/lib/features/api/livestreamApi";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import VideoUploader from "@/components/VideoUploader";
 import {
   ArrowLeft,
   Edit,
@@ -43,6 +45,7 @@ export default function LivestreamDetailPage({
   const router = useRouter();
   const { slug } = React.use(params);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
 
   // Use slug directly as identifier (BE supports slug)
   const livestreamSlug = slug;
@@ -55,6 +58,7 @@ export default function LivestreamDetailPage({
   } = useGetLivestreamQuery(livestreamSlug);
 
   const [deleteLivestream] = useDeleteLivestreamMutation();
+  const [updateLivestream] = useUpdateLivestreamMutation();
 
   // Action handlers
   const handleEdit = () => {
@@ -91,6 +95,54 @@ export default function LivestreamDetailPage({
   const handleWatchVideo = () => {
     if (livestream?.url) {
       window.open(livestream.url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  // Helper function to update livestream fields
+  const updateLivestreamField = async (
+    fieldName: string,
+    value: string,
+    successMessage: string
+  ) => {
+    if (!livestream) return;
+
+    try {
+      await updateLivestream({
+        id: livestream.id,
+        data: { [fieldName]: value },
+      }).unwrap();
+
+      toast.success(successMessage);
+      // Refetch livestream data to update UI
+      refetch();
+    } catch (error) {
+      const errorMessage =
+        error && typeof error === "object" && "data" in error
+          ? (error.data as Record<string, unknown>)?.message ||
+            `Failed to update ${fieldName}`
+          : `Failed to update ${fieldName}`;
+      toast.error(String(errorMessage));
+      throw error; // Re-throw to handle in upload components
+    }
+  };
+
+  // Helper function to extract relative path from ImageKit URL
+  const extractImageKitPath = (url: string): string => {
+    try {
+      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
+      const urlObj = new URL(url);
+      // Extract path and remove leading slash
+      const path = urlObj.pathname.substring(1);
+      // Remove the ImageKit ID prefix if it exists
+      const pathParts = path.split("/");
+      if (pathParts.length > 1) {
+        // Skip the first part (ImageKit ID) and join the rest
+        return pathParts.slice(1).join("/");
+      }
+      return path;
+    } catch (error) {
+      console.error("Error extracting ImageKit path:", error);
+      return url; // Fallback to original URL
     }
   };
 
@@ -209,32 +261,31 @@ export default function LivestreamDetailPage({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Video Player Placeholder */}
-              <div className="w-full h-64 bg-muted rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-                {livestream.url ? (
-                  <div className="text-center space-y-3">
-                    <PlayCircle className="h-16 w-16 text-muted-foreground mx-auto" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Video Available</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleWatchVideo}
-                        className="text-xs"
-                      >
-                        <ExternalLink className="mr-1 h-3 w-3" />
-                        Watch Video
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center space-y-2">
-                    <Video className="h-12 w-12 text-muted-foreground mx-auto" />
-                    <p className="text-sm text-muted-foreground">
-                      No video URL available
-                    </p>
-                  </div>
-                )}
+              {/* Video Upload and Player */}
+              <div className="space-y-4">
+                <VideoUploader
+                  currentVideoUrl={uploadedVideo || livestream.url}
+                  onUploadSuccess={async (url) => {
+                    setUploadedVideo(url);
+                    try {
+                      const relativePath = extractImageKitPath(url);
+                      await updateLivestreamField(
+                        "url",
+                        relativePath,
+                        "Livestream video updated successfully!"
+                      );
+                    } catch {
+                      // Error already handled in updateLivestreamField
+                      setUploadedVideo(null); // Reset on error
+                    }
+                  }}
+                  onUploadError={(error) => {
+                    toast.error(`Video upload failed: ${error}`);
+                  }}
+                  className="w-full"
+                  uploadFolder="livestreams"
+                  title="Livestream Video"
+                />
               </div>
 
               {/* Video URL */}
@@ -246,12 +297,18 @@ export default function LivestreamDetailPage({
                   </h4>
                   <div className="p-3 bg-muted rounded border">
                     <a
-                      href={livestream.url}
+                      href={
+                        process.env.NEXT_PUBLIC_CLIENT_URL +
+                        "/livestreams/" +
+                        livestream.slug
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:underline break-all"
                     >
-                      {livestream.url}
+                      {process.env.NEXT_PUBLIC_CLIENT_URL +
+                        "/livestreams/" +
+                        livestream.slug}
                     </a>
                   </div>
                 </div>
@@ -342,7 +399,7 @@ export default function LivestreamDetailPage({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Slug:</span>
+                  <span className="text-muted-foreground mr-4">Slug:</span>
                   <span className="font-mono text-xs">{livestream.slug}</span>
                 </div>
 

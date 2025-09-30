@@ -17,6 +17,8 @@ interface VideoUploaderProps {
   onUploadSuccess?: (url: string) => void;
   onUploadError?: (error: string) => void;
   className?: string;
+  uploadFolder?: string;
+  title?: string;
 }
 
 const VideoUploader: React.FC<VideoUploaderProps> = ({
@@ -24,6 +26,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
   onUploadSuccess,
   onUploadError,
   className = "",
+  uploadFolder = "uploads",
+  title = "Video",
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -52,9 +56,9 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
 
     // Upload file
     uploadFile(file, {
-      fileName: `intro_video_${Date.now()}.${file.name.split(".").pop()}`,
-      folder: "/course-intro",
-      tags: ["video", "course", "intro"],
+      fileName: `video_${Date.now()}.${file.name.split(".").pop()}`,
+      folder: `/${uploadFolder}`,
+      tags: ["video", uploadFolder],
     });
   };
 
@@ -84,7 +88,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm flex items-center">
                 <Video className="mr-2 h-4 w-4" />
-                Intro Video
+                {title}
               </h4>
               {!isUploading && (
                 <Button
@@ -139,7 +143,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   <div className="relative">
                     <video
                       src={previewUrl}
-                      className="w-full h-48 object-cover rounded border"
+                      className="w-full aspect-video object-cover rounded border"
                       controls
                       preload="metadata"
                     />
@@ -154,18 +158,21 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                   </div>
                 ) : currentVideoUrl ? (
                   <div className="relative">
-                    <div className="w-full h-48 bg-muted rounded border flex items-center justify-center overflow-hidden">
-                      <VideoIK src={currentVideoUrl} />
+                    <div className="w-full aspect-video bg-muted rounded border flex items-center justify-center overflow-hidden">
+                      <VideoIK
+                        src={currentVideoUrl}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded">
                       <CheckCircle className="h-4 w-4" />
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full h-48 bg-muted rounded border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center">
+                  <div className="w-full aspect-video bg-muted rounded border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center">
                     <Video className="h-12 w-12 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground text-center">
-                      No intro video uploaded
+                      No video uploaded
                       <br />
                       Click &quot;Upload Video&quot; to add one
                     </p>

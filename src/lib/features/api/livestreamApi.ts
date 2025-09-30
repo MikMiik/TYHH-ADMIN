@@ -56,6 +56,13 @@ export interface CreateLivestreamData {
   url?: string;
 }
 
+export interface UpdateLivestreamData {
+  title?: string;
+  url?: string;
+  courseId?: number;
+  courseOutlineId?: number;
+}
+
 export const livestreamApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     // Lấy danh sách livestreams với pagination và filters
@@ -102,7 +109,7 @@ export const livestreamApi = baseApi.injectEndpoints({
     }),
 
     // Cập nhật thông tin livestream
-    updateLivestream: builder.mutation<Livestream, { id: number; data: Partial<CreateLivestreamData> }>({
+    updateLivestream: builder.mutation<Livestream, { id: number; data: UpdateLivestreamData }>({
       query: ({ id, data }) => ({
         url: `/livestreams/${id}`,
         method: 'PUT',

@@ -4,7 +4,10 @@ interface VideoIKProps {
   className?: string;
   src?: string;
 }
-export default function VideoIK({ className, src }: VideoIKProps) {
+export default function VideoIK({
+  className = "w-full h-full",
+  src,
+}: VideoIKProps) {
   return (
     <Video
       urlEndpoint={process.env.NEXT_PUBLIC_IK_URL_ENDPOINT}

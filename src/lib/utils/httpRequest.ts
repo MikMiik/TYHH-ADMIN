@@ -8,7 +8,7 @@ class HttpRequest {
 
   constructor() {
     this.axiosInstance = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+      baseURL: process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001/api',
       withCredentials: true, // Enable cookies for cross-origin requests
       headers: {
         'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ class HttpRequest {
             try {
               // Cookies are sent automatically, no need to pass refreshToken in body
               await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
+                `${process.env.NEXT_PUBLIC_ADMIN_URL}/auth/refresh-token`,
                 {},
                 {
                   withCredentials: true,

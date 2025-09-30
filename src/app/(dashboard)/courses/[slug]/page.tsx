@@ -327,6 +327,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     toast.error(`Video upload failed: ${error}`);
                   }}
                   className="flex-1"
+                  uploadFolder="course-intro"
+                  title="Intro Video"
                 />
               </div>
             </CardContent>
