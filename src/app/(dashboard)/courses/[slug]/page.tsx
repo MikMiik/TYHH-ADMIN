@@ -3,6 +3,7 @@
 import {
   useGetCourseQuery,
   useDeleteCourseMutation,
+  useUpdateCourseMutation,
 } from "@/lib/features/api/courseApi";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,8 +16,6 @@ import {
   DollarSign,
   BookOpen,
   Tag,
-  Video,
-  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +29,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import React from "react";
-import ImageLazy from "@/components/ImageLazy";
+import ThumbnailUploader from "@/components/ThumbnailUploader";
+import VideoUploader from "@/components/VideoUploader";
 
 interface CourseDetailPageProps {
   params: Promise<{
@@ -43,6 +43,12 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const { slug } = React.use(params);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // State for upload management
+  const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(
+    null
+  );
+  const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+
   // Use slug directly as identifier (BE now supports both ID and slug)
   const courseSlug = slug;
 
@@ -54,6 +60,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   } = useGetCourseQuery(courseSlug);
 
   const [deleteCourse] = useDeleteCourseMutation();
+  const [updateCourse] = useUpdateCourseMutation();
 
   // Action handlers
   const handleEdit = () => {
@@ -95,6 +102,55 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const handleManageStudents = () => {
     // TODO: Navigate to student management page
     toast.info("Student management functionality coming soon");
+  };
+
+  // Helper function to update course fields
+  const updateCourseField = async (
+    fieldName: string,
+    value: string,
+    successMessage: string
+  ) => {
+    if (!course) return;
+
+    try {
+      await updateCourse({
+        id: course.id,
+        data: { [fieldName]: value },
+      }).unwrap();
+
+      toast.success(successMessage);
+      // Refetch course data to update UI
+      refetch();
+    } catch (error) {
+      const errorMessage =
+        error && typeof error === "object" && "data" in error
+          ? (error.data as Record<string, unknown>)?.message ||
+            `Failed to update ${fieldName}`
+          : `Failed to update ${fieldName}`;
+      toast.error(String(errorMessage));
+      throw error; // Re-throw to handle in upload components
+    }
+  };
+
+  // Helper function to extract relative path from ImageKit URL
+  const extractImageKitPath = (url: string): string => {
+    try {
+      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
+      const urlObj = new URL(url);
+      // Extract path and remove leading slash
+      const path = urlObj.pathname.substring(1);
+      // Remove the ImageKit ID prefix if it exists
+      const pathParts = path.split("/");
+      if (pathParts.length > 1) {
+        // Skip the first part (ImageKit ID) and join the rest
+        return pathParts.slice(1).join("/");
+      }
+      return path;
+    } catch (error) {
+      console.error("Error extracting ImageKit path:", error);
+      // Fallback: return the original URL if parsing fails
+      return url;
+    }
   };
 
   // Loading state
@@ -227,33 +283,51 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                 </div>
               )}
 
-              {/* Media */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {course.thumbnail && (
-                  <div>
-                    <h4 className="font-medium text-sm mb-2 flex items-center">
-                      <ImageIcon className="mr-2 h-4 w-4" />
-                      Thumbnail
-                    </h4>
-                    <ImageLazy
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="object-cover rounded border"
-                    />
-                  </div>
-                )}
+              {/* Media Upload Section */}
+              <div className="flex sm:flex-col lg:flex-row gap-4 items-stretch">
+                <ThumbnailUploader
+                  currentThumbnail={uploadedThumbnail || course.thumbnail}
+                  onUploadSuccess={async (url) => {
+                    setUploadedThumbnail(url);
+                    try {
+                      const relativePath = extractImageKitPath(url);
+                      await updateCourseField(
+                        "thumbnail",
+                        relativePath,
+                        "Thumbnail updated successfully!"
+                      );
+                    } catch {
+                      // Error already handled in updateCourseField
+                      setUploadedThumbnail(null); // Reset on error
+                    }
+                  }}
+                  onUploadError={(error) => {
+                    toast.error(`Thumbnail upload failed: ${error}`);
+                  }}
+                  className="flex-1"
+                />
 
-                {course.introVideo && (
-                  <div>
-                    <h4 className="font-medium text-sm mb-2 flex items-center">
-                      <Video className="mr-2 h-4 w-4" />
-                      Intro Video
-                    </h4>
-                    <div className="w-full h-32 bg-muted rounded border flex items-center justify-center">
-                      <Video className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  </div>
-                )}
+                <VideoUploader
+                  currentVideoUrl={uploadedVideo || course.introVideo}
+                  onUploadSuccess={async (url) => {
+                    setUploadedVideo(url);
+                    try {
+                      const relativePath = extractImageKitPath(url);
+                      await updateCourseField(
+                        "introVideo",
+                        relativePath,
+                        "Intro video updated successfully!"
+                      );
+                    } catch {
+                      // Error already handled in updateCourseField
+                      setUploadedVideo(null); // Reset on error
+                    }
+                  }}
+                  onUploadError={(error) => {
+                    toast.error(`Video upload failed: ${error}`);
+                  }}
+                  className="flex-1"
+                />
               </div>
             </CardContent>
           </Card>
