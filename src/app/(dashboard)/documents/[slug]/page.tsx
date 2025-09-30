@@ -3,10 +3,12 @@
 import {
   useGetDocumentQuery,
   useDeleteDocumentMutation,
+  useUpdateDocumentMutation,
 } from "@/lib/features/api/documentApi";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import ThumbnailUploader from "@/components/ThumbnailUploader";
 import {
   ArrowLeft,
   Edit,
@@ -30,7 +32,6 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import React from "react";
 import Link from "next/link";
-import ImageLazy from "@/components/ImageLazy";
 
 interface DocumentDetailPageProps {
   params: Promise<{
@@ -44,6 +45,9 @@ export default function DocumentDetailPage({
   const router = useRouter();
   const { slug } = React.use(params);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(
+    null
+  );
 
   // Use slug directly as identifier (BE supports both ID and slug)
   const documentSlug = slug;
@@ -56,6 +60,7 @@ export default function DocumentDetailPage({
   } = useGetDocumentQuery(documentSlug);
 
   const [deleteDocument] = useDeleteDocumentMutation();
+  const [updateDocument] = useUpdateDocumentMutation();
 
   // Action handlers
   const handleEdit = () => {
@@ -92,6 +97,54 @@ export default function DocumentDetailPage({
   const handleDownload = () => {
     // TODO: Implement download functionality
     toast.info("Download functionality coming soon");
+  };
+
+  // Helper function to update document fields
+  const updateDocumentField = async (
+    fieldName: string,
+    value: string,
+    successMessage: string
+  ) => {
+    if (!document) return;
+
+    try {
+      await updateDocument({
+        id: document.id,
+        data: { [fieldName]: value },
+      }).unwrap();
+
+      toast.success(successMessage);
+      // Refetch document data to update UI
+      refetch();
+    } catch (error) {
+      const errorMessage =
+        error && typeof error === "object" && "data" in error
+          ? (error.data as Record<string, unknown>)?.message ||
+            `Failed to update ${fieldName}`
+          : `Failed to update ${fieldName}`;
+      toast.error(String(errorMessage));
+      throw error; // Re-throw to handle in upload components
+    }
+  };
+
+  // Helper function to extract relative path from ImageKit URL
+  const extractImageKitPath = (url: string): string => {
+    try {
+      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
+      const urlObj = new URL(url);
+      // Extract path and remove leading slash
+      const path = urlObj.pathname.substring(1);
+      // Remove the ImageKit ID prefix if it exists
+      const pathParts = path.split("/");
+      if (pathParts.length > 1) {
+        // Skip the first part (ImageKit ID) and join the rest
+        return pathParts.slice(1).join("/");
+      }
+      return path;
+    } catch (error) {
+      console.error("Error extracting ImageKit path:", error);
+      return url; // Fallback to original URL
+    }
   };
 
   // Loading state
@@ -222,22 +275,31 @@ export default function DocumentDetailPage({
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Document Preview/Thumbnail */}
-              <div className="w-full h-64 bg-muted rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
-                {document.thumbnail ? (
-                  <ImageLazy
-                    src={document.thumbnail}
-                    alt={document.title || "Document thumbnail"}
-                    className="object-cover rounded-lg w-full h-full"
-                  />
-                ) : (
-                  <div className="text-center space-y-2">
-                    <FileText className="h-12 w-12 text-muted-foreground mx-auto" />
-                    <p className="text-sm text-muted-foreground">
-                      No thumbnail available
-                    </p>
-                  </div>
-                )}
+              {/* Document Thumbnail Upload */}
+              <div className="space-y-4">
+                <ThumbnailUploader
+                  currentThumbnail={uploadedThumbnail || document.thumbnail}
+                  onUploadSuccess={async (url) => {
+                    setUploadedThumbnail(url);
+                    try {
+                      const relativePath = extractImageKitPath(url);
+                      await updateDocumentField(
+                        "thumbnail",
+                        relativePath,
+                        "Document thumbnail updated successfully!"
+                      );
+                    } catch {
+                      // Error already handled in updateDocumentField
+                      setUploadedThumbnail(null); // Reset on error
+                    }
+                  }}
+                  onUploadError={(error) => {
+                    toast.error(`Thumbnail upload failed: ${error}`);
+                  }}
+                  className="w-full"
+                  uploadFolder="doc-thumbnails"
+                  title="Document Thumbnail"
+                />
               </div>
             </CardContent>
           </Card>

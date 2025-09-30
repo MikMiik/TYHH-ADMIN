@@ -55,28 +55,28 @@ export interface DocumentsListResponse {
   };
 }
 
-interface CreateDocumentData {
-  livestreamId?: number;
-  vip?: boolean;
-  title?: string;
+export interface CreateDocumentData {
+  title: string;
   slug?: string;
   thumbnail?: string;
+  vip?: boolean;
+  livestreamId?: number;
 }
 
-interface UpdateDocumentData {
-  livestreamId?: number;
-  vip?: boolean;
+export interface UpdateDocumentData {
   title?: string;
-  slug?: string;
   thumbnail?: string;
+  vip?: boolean;
+  livestreamId?: number;
 }
 
 export interface DocumentAnalytics {
-  total: number;
-  vip: number;
-  free: number;
+  totalDocuments: number;
+  vipDocuments: number;
+  freeDocuments: number;
   totalDownloads: number;
-  topDownloaded: Array<{
+  averageDownloads: number;
+  topDownloaded?: Array<{
     id: number;
     title?: string;
     slug?: string;

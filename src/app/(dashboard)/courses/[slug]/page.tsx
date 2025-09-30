@@ -305,6 +305,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     toast.error(`Thumbnail upload failed: ${error}`);
                   }}
                   className="flex-1"
+                  uploadFolder="course-thumbnails"
+                  title="Course Thumbnail"
                 />
 
                 <VideoUploader

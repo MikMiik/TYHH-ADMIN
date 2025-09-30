@@ -17,6 +17,8 @@ interface ThumbnailUploaderProps {
   onUploadSuccess?: (url: string) => void;
   onUploadError?: (error: string) => void;
   className?: string;
+  uploadFolder?: string;
+  title?: string;
 }
 
 const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
@@ -24,6 +26,8 @@ const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
   onUploadSuccess,
   onUploadError,
   className = "",
+  uploadFolder = "course-thumbnails",
+  title = "Thumbnail",
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -53,8 +57,8 @@ const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
     // Upload file
     uploadFile(file, {
       fileName: `thumbnail_${Date.now()}.${file.name.split(".").pop()}`,
-      folder: "/course-thumbnails",
-      tags: ["thumbnail", "course"],
+      folder: `/${uploadFolder}`,
+      tags: ["thumbnail", uploadFolder],
     });
   };
 
@@ -84,7 +88,7 @@ const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
             <div className="flex items-center justify-between">
               <h4 className="font-medium text-sm flex items-center">
                 <ImageIcon className="mr-2 h-4 w-4" />
-                Thumbnail
+                {title}
               </h4>
               {!isUploading && (
                 <Button
