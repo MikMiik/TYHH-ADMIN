@@ -184,10 +184,14 @@ export const userColumns: ColumnDef<UserType>[] = [
     },
   },
   {
-    accessorKey: "role",
+    accessorKey: "roles",
     header: "Role",
     cell: ({ row }) => {
-      const role = row.getValue("role") as string;
+      const user = row.original;
+      // Get primary role from roles array
+      const role =
+        user.roles && user.roles.length > 0 ? user.roles[0].name : "user";
+
       return (
         <Badge
           variant={
@@ -245,9 +249,12 @@ export const userColumns: ColumnDef<UserType>[] = [
       );
     },
     cell: ({ row }) => {
-      const points = parseFloat(row.getValue("point"));
+      const pointValue = row.getValue("point");
+      const points = pointValue != null ? parseFloat(pointValue as string) : 0;
       return (
-        <div className="text-center font-mono">{points.toLocaleString()}</div>
+        <div className="text-center font-mono">
+          {isNaN(points) ? 0 : points.toLocaleString()}
+        </div>
       );
     },
   },

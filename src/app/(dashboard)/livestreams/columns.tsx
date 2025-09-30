@@ -75,7 +75,9 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
     accessorKey: "view",
     header: "Views",
     cell: ({ row }) => {
-      const view = row.getValue("view") as number;
+      const viewValue = row.getValue("view");
+      const view =
+        typeof viewValue === "number" ? viewValue : Number(viewValue) || 0;
       return (
         <div className="flex items-center space-x-1">
           <Eye className="h-4 w-4 text-muted-foreground" />

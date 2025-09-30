@@ -11,7 +11,12 @@ export interface User {
   phone?: string | null;
   facebook?: string | null;
   status?: string | null;
-  role: 'user' | 'admin' | 'teacher';
+  role: 'user' | 'admin' | 'teacher'; // Keep required for backward compatibility
+  roles?: Array<{
+    id: number;
+    name: 'user' | 'admin' | 'teacher';
+    displayName: string;
+  }>; // Add roles array from backend
   point: number;
   googleId?: string | null;
   activeKey: boolean;

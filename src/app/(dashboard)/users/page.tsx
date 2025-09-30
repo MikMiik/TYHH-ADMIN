@@ -124,7 +124,13 @@ export default function UsersPage() {
 
     // 2. Role filter
     if (roleFilter && roleFilter !== "all") {
-      if (user.role !== roleFilter) {
+      // Handle roles array from backend
+      const userRole =
+        user.roles && user.roles.length > 0
+          ? user.roles[0].name
+          : user.role || "user"; // Fallback to role field or default to 'user'
+
+      if (userRole !== roleFilter) {
         return false;
       }
     }
