@@ -28,9 +28,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
+import {
+  validateCourseField,
+  type UpdateCourseFieldData,
+} from "@/lib/schemas/course";
 import React from "react";
 import ThumbnailUploader from "@/components/ThumbnailUploader";
 import VideoUploader from "@/components/VideoUploader";
+import InlineEdit from "@/components/InlineEdit";
 
 interface CourseDetailPageProps {
   params: Promise<{
@@ -63,11 +68,6 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const [updateCourse] = useUpdateCourseMutation();
 
   // Action handlers
-  const handleEdit = () => {
-    // TODO: Navigate to edit page or open edit modal
-    toast.info("Edit functionality coming soon");
-  };
-
   const handleDelete = async () => {
     if (!course) return;
 
@@ -107,21 +107,76 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   // Helper function to update course fields
   const updateCourseField = async (
     fieldName: string,
-    value: string,
+    value: string | number,
     successMessage: string
   ) => {
     if (!course) return;
 
     try {
-      await updateCourse({
+      // Convert string numbers to actual numbers for numeric fields
+      let processedValue: string | number = value;
+      if (fieldName === "price" || fieldName === "discount") {
+        processedValue =
+          typeof value === "string" ? parseFloat(value) || 0 : value;
+      }
+
+      // Frontend validation - only for supported fields
+      const supportedFields: (keyof UpdateCourseFieldData)[] = [
+        "title",
+        "description",
+        "purpose",
+        "content",
+        "group",
+        "price",
+        "discount",
+        "thumbnail",
+        "introVideo",
+      ];
+
+      if (supportedFields.includes(fieldName as keyof UpdateCourseFieldData)) {
+        const validationResult = validateCourseField(
+          fieldName as keyof UpdateCourseFieldData,
+          processedValue
+        );
+        if (!validationResult.success) {
+          const firstError = validationResult.error.issues[0];
+          const errorMessage = firstError?.message || "Dữ liệu không hợp lệ";
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+      }
+
+      const updateResult = await updateCourse({
         id: course.id,
-        data: { [fieldName]: value },
+        data: { [fieldName]: processedValue },
       }).unwrap();
 
       toast.success(successMessage);
+
+      // If title was updated, redirect to new slug
+      if (
+        fieldName === "title" &&
+        updateResult?.slug &&
+        updateResult.slug !== course.slug
+      ) {
+        toast.success("Đang chuyển hướng đến đường dẫn mới...");
+        router.push(`/courses/${updateResult.slug}`);
+        return;
+      }
+
       // Refetch course data to update UI
       refetch();
     } catch (error) {
+      // Handle different types of errors
+      if (
+        error instanceof Error &&
+        error.message.includes("Dữ liệu không hợp lệ")
+      ) {
+        // This is already a formatted validation error - don't reformat
+        return; // Error already shown in toast above
+      }
+
+      // Handle API errors
       const errorMessage =
         error && typeof error === "object" && "data" in error
           ? (error.data as Record<string, unknown>)?.message ||
@@ -194,36 +249,35 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 lg:p-6">
       {/* Page Header with Actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.back()}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl lg:text-2xl font-bold tracking-tight truncate">
               {course.title}
             </h1>
-            <p className="text-muted-foreground">Course Details & Management</p>
+            <p className="text-muted-foreground text-sm">
+              Course Details & Management
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleEdit}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0">
           <Button
             variant="destructive"
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting}
+            className="w-full sm:w-auto"
           >
             <Trash2 className="mr-2 h-4 w-4" />
             {isDeleting ? "Deleting..." : "Delete"}
@@ -231,9 +285,9 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="xl:col-span-2 space-y-4 lg:space-y-6 min-w-0">
           {/* Course Info Card */}
           <Card>
             <CardHeader>
@@ -248,43 +302,97 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   <Badge variant={course.isFree ? "secondary" : "default"}>
                     {course.isFree ? "Free" : "Paid"}
                   </Badge>
-                  {course.group && (
-                    <Badge variant="outline">{course.group}</Badge>
-                  )}
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {course.description && (
-                <div>
-                  <h4 className="font-medium text-sm mb-2">Description</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {course.description}
-                  </p>
-                </div>
-              )}
+            <CardContent className="space-y-3 lg:space-y-4 p-4 lg:p-6">
+              {/* Title - Inline Edit */}
+              <div>
+                <h4 className="font-medium text-sm mb-2">Title</h4>
+                <InlineEdit
+                  value={course.title}
+                  onSave={async (value) => {
+                    await updateCourseField(
+                      "title",
+                      value,
+                      "Title updated successfully!"
+                    );
+                  }}
+                  type="text"
+                  placeholder="Enter course title..."
+                />
+              </div>
 
-              {course.purpose && (
-                <div>
-                  <h4 className="font-medium text-sm mb-2">Purpose</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {course.purpose}
-                  </p>
-                </div>
-              )}
+              {/* Description - Inline Edit */}
+              <div>
+                <h4 className="font-medium text-sm mb-2">Description</h4>
+                <InlineEdit
+                  value={course.description}
+                  onSave={async (value) => {
+                    await updateCourseField(
+                      "description",
+                      value,
+                      "Description updated successfully!"
+                    );
+                  }}
+                  type="textarea"
+                  placeholder="Add course description..."
+                />
+              </div>
 
-              {course.content && (
-                <div>
-                  <h4 className="font-medium text-sm mb-2">Content</h4>
-                  <div
-                    className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: course.content }}
-                  />
-                </div>
-              )}
+              {/* Purpose - Inline Edit */}
+              <div>
+                <h4 className="font-medium text-sm mb-2">Purpose</h4>
+                <InlineEdit
+                  value={course.purpose}
+                  onSave={async (value) => {
+                    await updateCourseField(
+                      "purpose",
+                      value,
+                      "Purpose updated successfully!"
+                    );
+                  }}
+                  type="textarea"
+                  placeholder="Add course purpose..."
+                />
+              </div>
+
+              {/* Content - Inline Edit */}
+              <div>
+                <h4 className="font-medium text-sm mb-2">Content</h4>
+                <InlineEdit
+                  value={course.content}
+                  onSave={async (value) => {
+                    await updateCourseField(
+                      "content",
+                      value,
+                      "Content updated successfully!"
+                    );
+                  }}
+                  type="textarea"
+                  placeholder="Add course content..."
+                />
+              </div>
+
+              {/* Group - Inline Edit */}
+              <div>
+                <h4 className="font-medium text-sm mb-2">Group</h4>
+                <InlineEdit
+                  value={course.group || ""}
+                  onSave={async (value) => {
+                    await updateCourseField(
+                      "group",
+                      value,
+                      "Group updated successfully!"
+                    );
+                  }}
+                  type="text"
+                  placeholder="Add course group..."
+                />
+              </div>
 
               {/* Media Upload Section */}
-              <div className="flex sm:flex-col lg:flex-row gap-4 items-stretch">
+              <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
                 <ThumbnailUploader
                   currentThumbnail={uploadedThumbnail || course.thumbnail}
                   onUploadSuccess={async (url) => {
@@ -355,25 +463,35 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   {course.outlines.map((outline, index) => (
                     <div
                       key={outline.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
+                      className="flex items-center justify-between p-3 border rounded-lg gap-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0">
                           {index + 1}
                         </div>
-                        <div>
-                          <h5 className="font-medium">{outline.title}</h5>
-                          <p className="text-xs text-muted-foreground">
+                        <div className="min-w-0 flex-1">
+                          <h5 className="font-medium text-sm truncate">
+                            {outline.title}
+                          </h5>
+                          <p className="text-xs text-muted-foreground truncate">
                             {outline.slug}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4" />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
@@ -393,14 +511,14 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6 min-w-0">
           {/* Quick Stats */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Quick Stats</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <CardContent className="space-y-3 lg:space-y-4 p-4 lg:p-6">
+              <div className="grid grid-cols-2 gap-3 lg:gap-4">
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <Users className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
                   <p className="text-2xl font-bold">
@@ -449,6 +567,67 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Price Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <DollarSign className="mr-2 h-5 w-5" />
+                Pricing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Price */}
+              <div>
+                <h4 className="font-medium text-sm mb-2">Price (VND)</h4>
+                <InlineEdit
+                  value={
+                    Number(course.price)?.toLocaleString("vi-VN") + "₫" || ""
+                  }
+                  onSave={async (value) => {
+                    const numericValue = parseFloat(value) || 0;
+                    await updateCourseField(
+                      "price",
+                      numericValue,
+                      "Price updated successfully!"
+                    );
+                  }}
+                  type="number"
+                  placeholder="Enter price in VND..."
+                />
+              </div>
+
+              {/* Discount */}
+              <div>
+                <h4 className="font-medium text-sm mb-2">
+                  Discount Price (VND)
+                </h4>
+                <InlineEdit
+                  value={
+                    Number(course.discount)?.toLocaleString("vi-VN") + "₫" || ""
+                  }
+                  onSave={async (value) => {
+                    const numericValue = parseFloat(value) || 0;
+                    await updateCourseField(
+                      "discount",
+                      numericValue,
+                      "Discount updated successfully!"
+                    );
+                  }}
+                  type="number"
+                  placeholder="Enter discount price..."
+                />
+              </div>
+
+              {/* Free Course Toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Free Course</span>
+                <Badge variant={course.isFree ? "secondary" : "default"}>
+                  {course.isFree ? "Free" : "Paid"}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
 

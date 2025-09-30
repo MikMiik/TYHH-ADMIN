@@ -31,10 +31,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import {
-  useGetDocumentsQuery,
-  useGetDocumentAnalyticsQuery,
-} from "@/lib/features/api/documentApi";
+import { useGetDocumentsQuery } from "@/lib/features/api/documentApi";
 
 export default function DocumentsPage() {
   const [searchValue, setSearchValue] = useState("");
@@ -62,9 +59,6 @@ export default function DocumentsPage() {
         ? false
         : undefined,
   });
-
-  // Get analytics data (for future use)
-  const { data: analytics } = useGetDocumentAnalyticsQuery();
 
   const totalDocuments = documentsData?.pagination?.total || 0;
   const totalDownloads = documentsData?.stats?.totalDownloads || 0;

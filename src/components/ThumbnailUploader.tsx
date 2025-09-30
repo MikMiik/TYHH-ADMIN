@@ -11,6 +11,7 @@ import ImageKitUploader, {
   UploadResponse,
   UploadOptions,
 } from "./ImagekitAuth";
+import Image from "next/image";
 
 interface ThumbnailUploaderProps {
   currentThumbnail?: string;
@@ -138,7 +139,7 @@ const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
                   </div>
                 ) : previewUrl ? (
                   <div className="relative">
-                    <img
+                    <Image
                       src={previewUrl}
                       alt="Preview"
                       className="w-full h-48 object-cover rounded border"

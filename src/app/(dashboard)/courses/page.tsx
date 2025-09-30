@@ -41,6 +41,7 @@ import {
   type Course,
 } from "@/lib/features/api/courseApi";
 import { useGetUsersQuery } from "@/lib/features/api/userApi";
+import { createCourseSchema } from "@/lib/schemas/course";
 
 // Tham khảo quy tắc phát triển tại .github/development-instructions.md
 export default function CoursesPage() {
@@ -154,31 +155,7 @@ export default function CoursesPage() {
 
   const handleCreateCourse = async () => {
     try {
-      // Basic validation
-      if (!formData.title.trim()) {
-        toast.error("Course title is required");
-        return;
-      }
-
-      if (!formData.isFree) {
-        if (formData.price && isNaN(parseFloat(formData.price))) {
-          toast.error("Please enter a valid price");
-          return;
-        }
-        if (formData.discount && isNaN(parseFloat(formData.discount))) {
-          toast.error("Please enter a valid discount amount");
-          return;
-        }
-        if (
-          formData.discount &&
-          formData.price &&
-          parseFloat(formData.discount) >= parseFloat(formData.price)
-        ) {
-          toast.error("Discount amount must be less than the original price");
-          return;
-        }
-      }
-
+      // Prepare course data
       const courseData = {
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
@@ -200,7 +177,16 @@ export default function CoursesPage() {
         introVideo: formData.introVideo.trim() || undefined,
       };
 
-      await createCourse(courseData).unwrap();
+      // Frontend validation using Zod schema
+      const validationResult = createCourseSchema.safeParse(courseData);
+      if (!validationResult.success) {
+        const firstError = validationResult.error.issues[0];
+        const errorMessage = firstError?.message || "Dữ liệu không hợp lệ";
+        toast.error(errorMessage);
+        return;
+      }
+
+      await createCourse(validationResult.data).unwrap();
       toast.success("Course created successfully!");
 
       // Reset form and close dialog

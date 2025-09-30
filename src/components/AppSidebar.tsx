@@ -6,7 +6,6 @@ import {
   BookOpen,
   Video,
   FileText,
-  BarChart3,
   Settings,
   User2,
   ChevronUp,

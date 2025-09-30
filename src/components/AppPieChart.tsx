@@ -4,8 +4,6 @@ import { Label, Pie, PieChart } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "./ui/chart";
