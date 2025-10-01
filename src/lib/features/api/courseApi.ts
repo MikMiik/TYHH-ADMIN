@@ -42,6 +42,7 @@ export interface CourseOutline {
   title: string;
   slug: string;
   courseId: number;
+  order?: number;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
@@ -186,6 +187,43 @@ export const courseApi = baseApi.injectEndpoints({
       invalidatesTags: ['Course'],
     }),
 
+    // Update course outline
+    updateCourseOutline: builder.mutation<CourseOutline, { id: number | string; title: string }>({
+      query: ({ id, title }) => ({
+        url: `/courses/outlines/${id}`,
+        method: 'PUT',
+        body: { title },
+      }),
+      transformResponse: (response: ApiResponse<CourseOutline>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update outline');
+        }
+        return response.data;
+      },
+      invalidatesTags: ['Course'],
+    }),
+
+    // Delete course outline
+    deleteCourseOutline: builder.mutation<{ success: boolean }, number | string>({
+      query: (id) => ({
+        url: `/courses/outlines/${id}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (response: ApiResponse) => ({ success: response.success }),
+      invalidatesTags: ['Course'],
+    }),
+
+    // Reorder course outlines
+    reorderCourseOutlines: builder.mutation<{ success: boolean }, { courseId: number | string; orders: { id: number; order: number }[] }>({
+      query: ({ courseId, orders }) => ({
+        url: `/courses/${courseId}/outlines/reorder`,
+        method: 'PUT',
+        body: { orders },
+      }),
+      transformResponse: (response: ApiResponse) => ({ success: response.success }),
+      invalidatesTags: ['Course'],
+    }),
+
     // Lấy danh sách topics
     getTopics: builder.query<Topic[], void>({
       query: () => '/topics',
@@ -231,6 +269,9 @@ export const {
   useDeleteCourseMutation,
   useGetCourseOutlinesQuery,
   useCreateCourseOutlineMutation,
+  useUpdateCourseOutlineMutation,
+  useDeleteCourseOutlineMutation,
+  useReorderCourseOutlinesMutation,
   useGetTopicsQuery,
   useCreateTopicMutation,
   useAssignCourseTopicsMutation,

@@ -4,6 +4,10 @@ import {
   useGetCourseQuery,
   useDeleteCourseMutation,
   useUpdateCourseMutation,
+  useCreateCourseOutlineMutation,
+  useUpdateCourseOutlineMutation,
+  useDeleteCourseOutlineMutation,
+  useReorderCourseOutlinesMutation,
 } from "@/lib/features/api/courseApi";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -16,6 +20,7 @@ import {
   DollarSign,
   BookOpen,
   Tag,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,15 +32,119 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import {
   validateCourseField,
   type UpdateCourseFieldData,
+  createCourseOutlineSchema,
 } from "@/lib/schemas/course";
+import { CourseOutline } from "@/lib/features/api/courseApi";
 import React from "react";
 import ThumbnailUploader from "@/components/ThumbnailUploader";
 import VideoUploader from "@/components/VideoUploader";
 import InlineEdit from "@/components/InlineEdit";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Outline Item Component
+interface SortableOutlineItemProps {
+  outline: CourseOutline;
+  index: number;
+  onEdit: (outline: CourseOutline) => void;
+  onDelete: (outline: CourseOutline) => void;
+}
+
+function SortableOutlineItem({
+  outline,
+  index,
+  onEdit,
+  onDelete,
+}: SortableOutlineItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: outline.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between p-3 border rounded-lg gap-3 bg-background"
+    >
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0">
+          {index + 1}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h5 className="font-medium text-sm truncate">{outline.title}</h5>
+          <p className="text-xs text-muted-foreground truncate">
+            {outline.slug}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => onEdit(outline)}
+        >
+          <Edit className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={() => onDelete(outline)}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 interface CourseDetailPageProps {
   params: Promise<{
@@ -47,6 +156,25 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const router = useRouter();
   const { slug } = React.use(params);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Outline management state
+  const [isAddOutlineDialogOpen, setIsAddOutlineDialogOpen] = useState(false);
+  const [newOutlineTitle, setNewOutlineTitle] = useState("");
+  const [isCreatingOutline, setIsCreatingOutline] = useState(false);
+
+  // Edit/Delete outline state
+  const [isEditOutlineDialogOpen, setIsEditOutlineDialogOpen] = useState(false);
+  const [editingOutline, setEditingOutline] = useState<CourseOutline | null>(
+    null
+  );
+  const [editOutlineTitle, setEditOutlineTitle] = useState("");
+  const [isUpdatingOutline, setIsUpdatingOutline] = useState(false);
+  const [isDeleteOutlineDialogOpen, setIsDeleteOutlineDialogOpen] =
+    useState(false);
+  const [deletingOutline, setDeletingOutline] = useState<CourseOutline | null>(
+    null
+  );
+  const [isDeletingOutline, setIsDeletingOutline] = useState(false);
 
   // State for upload management
   const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(
@@ -66,6 +194,18 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
 
   const [deleteCourse] = useDeleteCourseMutation();
   const [updateCourse] = useUpdateCourseMutation();
+  const [createCourseOutline] = useCreateCourseOutlineMutation();
+  const [updateCourseOutline] = useUpdateCourseOutlineMutation();
+  const [deleteCourseOutline] = useDeleteCourseOutlineMutation();
+  const [reorderCourseOutlines] = useReorderCourseOutlinesMutation();
+
+  // Drag & Drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Action handlers
   const handleDelete = async () => {
@@ -95,13 +235,187 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   };
 
   const handleAddOutline = () => {
-    // TODO: Open add outline modal
-    toast.info("Add outline functionality coming soon");
+    setIsAddOutlineDialogOpen(true);
   };
 
   const handleManageStudents = () => {
     // TODO: Navigate to student management page
     toast.info("Student management functionality coming soon");
+  };
+
+  const handleCreateOutline = async () => {
+    if (!course || !newOutlineTitle.trim()) {
+      toast.error("Please enter outline title");
+      return;
+    }
+
+    // Frontend validation
+    const validationResult = createCourseOutlineSchema.safeParse({
+      title: newOutlineTitle.trim(),
+    });
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
+      toast.error(firstError?.message || "Invalid outline data");
+      return;
+    }
+
+    setIsCreatingOutline(true);
+    try {
+      await createCourseOutline({
+        courseId: course.id,
+        title: newOutlineTitle.trim(),
+      }).unwrap();
+
+      toast.success("Course outline created successfully!");
+      setNewOutlineTitle("");
+      setIsAddOutlineDialogOpen(false);
+      refetch(); // Refresh course data to show new outline
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to create outline";
+      toast.error(errorMessage);
+    } finally {
+      setIsCreatingOutline(false);
+    }
+  };
+
+  // Handle drag end for reordering outlines
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!active || !over || active.id === over.id) {
+      return;
+    }
+
+    if (!course?.outlines) return;
+
+    const oldIndex = course.outlines.findIndex((item) => item.id === active.id);
+    const newIndex = course.outlines.findIndex((item) => item.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Create new order array
+    const reorderedOutlines = arrayMove(course.outlines, oldIndex, newIndex);
+
+    // Create orders payload for API
+    const orders = reorderedOutlines.map((outline, index) => ({
+      id: outline.id,
+      order: index + 1,
+    }));
+
+    try {
+      await reorderCourseOutlines({
+        courseId: course.id,
+        orders,
+      }).unwrap();
+
+      toast.success("Outlines reordered successfully!");
+      refetch(); // Refresh to get updated order
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to reorder outlines";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Handle edit outline
+  const handleEditOutline = (outline: CourseOutline) => {
+    setEditingOutline(outline);
+    setEditOutlineTitle(outline.title);
+    setIsEditOutlineDialogOpen(true);
+  };
+
+  const handleUpdateOutline = async () => {
+    if (!editingOutline || !editOutlineTitle.trim()) {
+      toast.error("Please enter outline title");
+      return;
+    }
+
+    // Frontend validation
+    const validationResult = createCourseOutlineSchema.safeParse({
+      title: editOutlineTitle.trim(),
+    });
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
+      toast.error(firstError?.message || "Invalid outline data");
+      return;
+    }
+
+    setIsUpdatingOutline(true);
+    try {
+      await updateCourseOutline({
+        id: editingOutline.id,
+        title: editOutlineTitle.trim(),
+      }).unwrap();
+
+      toast.success("Course outline updated successfully!");
+      setEditOutlineTitle("");
+      setEditingOutline(null);
+      setIsEditOutlineDialogOpen(false);
+      refetch(); // Refresh course data
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to update outline";
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdatingOutline(false);
+    }
+  };
+
+  // Handle delete outline
+  const handleDeleteOutline = (outline: CourseOutline) => {
+    setDeletingOutline(outline);
+    setIsDeleteOutlineDialogOpen(true);
+  };
+
+  const handleConfirmDeleteOutline = async () => {
+    if (!deletingOutline) return;
+
+    setIsDeletingOutline(true);
+    try {
+      await deleteCourseOutline(deletingOutline.id).unwrap();
+
+      toast.success("Course outline deleted successfully!");
+      setDeletingOutline(null);
+      setIsDeleteOutlineDialogOpen(false);
+      refetch(); // Refresh course data
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to delete outline";
+      toast.error(errorMessage);
+    } finally {
+      setIsDeletingOutline(false);
+    }
   };
 
   // Helper function to update course fields
@@ -459,44 +773,28 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
             </CardHeader>
             <CardContent>
               {course.outlines && course.outlines.length > 0 ? (
-                <div className="space-y-3">
-                  {course.outlines.map((outline, index) => (
-                    <div
-                      key={outline.id}
-                      className="flex items-center justify-between p-3 border rounded-lg gap-3"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0">
-                          {index + 1}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h5 className="font-medium text-sm truncate">
-                            {outline.title}
-                          </h5>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {outline.slug}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={course.outlines.map((outline) => outline.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-3">
+                      {course.outlines.map((outline, index) => (
+                        <SortableOutlineItem
+                          key={outline.id}
+                          outline={outline}
+                          index={index}
+                          onEdit={handleEditOutline}
+                          onDelete={handleDeleteOutline}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <div className="text-center py-8">
                   <BookOpen className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -742,6 +1040,139 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
           </Card>
         </div>
       </div>
+
+      {/* Add Outline Dialog */}
+      <Dialog
+        open={isAddOutlineDialogOpen}
+        onOpenChange={setIsAddOutlineDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Course Outline</DialogTitle>
+            <DialogDescription>
+              Create a new outline section for this course.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="outline-title" className="mb-2">
+                Outline Title
+              </Label>
+              <Input
+                id="outline-title"
+                placeholder="Enter outline title..."
+                value={newOutlineTitle}
+                onChange={(e) => setNewOutlineTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newOutlineTitle.trim()) {
+                    handleCreateOutline();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddOutlineDialogOpen(false);
+                setNewOutlineTitle("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateOutline}
+              disabled={isCreatingOutline || !newOutlineTitle.trim()}
+            >
+              {isCreatingOutline ? "Creating..." : "Create Outline"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Outline Dialog */}
+      <Dialog
+        open={isEditOutlineDialogOpen}
+        onOpenChange={setIsEditOutlineDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Course Outline</DialogTitle>
+            <DialogDescription>
+              Update the outline title for this course.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-outline-title">Outline Title</Label>
+              <Input
+                id="edit-outline-title"
+                placeholder="Enter outline title..."
+                value={editOutlineTitle}
+                onChange={(e) => setEditOutlineTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && editOutlineTitle.trim()) {
+                    handleUpdateOutline();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditOutlineDialogOpen(false);
+                setEditOutlineTitle("");
+                setEditingOutline(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateOutline}
+              disabled={isUpdatingOutline || !editOutlineTitle.trim()}
+            >
+              {isUpdatingOutline ? "Updating..." : "Update Outline"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Outline Dialog */}
+      <Dialog
+        open={isDeleteOutlineDialogOpen}
+        onOpenChange={setIsDeleteOutlineDialogOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Course Outline</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{deletingOutline?.title}
+              &rdquo;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteOutlineDialogOpen(false);
+                setDeletingOutline(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDeleteOutline}
+              disabled={isDeletingOutline}
+            >
+              {isDeletingOutline ? "Deleting..." : "Delete Outline"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

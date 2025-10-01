@@ -225,6 +225,17 @@ export const updateCourseFieldSchema = z.object({
     .optional(),
 });
 
+// Schema cho course outline
+export const createCourseOutlineSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Tiêu đề outline không được để trống.")
+    .min(3, "Tiêu đề outline phải có ít nhất 3 ký tự.")
+    .max(255, "Tiêu đề outline không được quá 255 ký tự."),
+});
+
+export const updateCourseOutlineSchema = createCourseOutlineSchema.partial();
+
 // Helper function để validate single field
 export const validateCourseField = (fieldName: keyof UpdateCourseFieldData, value: unknown) => {
   const fieldSchema = updateCourseFieldSchema.pick({ [fieldName]: true } as Record<keyof UpdateCourseFieldData, true>);
@@ -235,3 +246,5 @@ export const validateCourseField = (fieldName: keyof UpdateCourseFieldData, valu
 export type CreateCourseData = z.infer<typeof createCourseSchema>;
 export type UpdateCourseData = z.infer<typeof updateCourseSchema>;
 export type UpdateCourseFieldData = z.infer<typeof updateCourseFieldSchema>;
+export type CreateCourseOutlineData = z.infer<typeof createCourseOutlineSchema>;
+export type UpdateCourseOutlineData = z.infer<typeof updateCourseOutlineSchema>;
