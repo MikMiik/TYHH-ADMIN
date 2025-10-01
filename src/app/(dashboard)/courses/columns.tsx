@@ -12,13 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ColumnDef } from "@tanstack/react-table";
-import {
-  ArrowUpDown,
-  MoreHorizontal,
-  BookOpen,
-  Eye,
-  Trash2,
-} from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Eye, Trash2 } from "lucide-react";
 import { Course } from "@/lib/features/api/courseApi";
 import { format } from "date-fns";
 import Link from "next/link";

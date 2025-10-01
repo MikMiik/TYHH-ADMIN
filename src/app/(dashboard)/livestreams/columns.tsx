@@ -62,11 +62,11 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
   },
   {
     accessorKey: "courseOutline",
-    header: "Chapter",
+    header: "Outline",
     cell: ({ row }) => {
       const courseOutline = row.original.courseOutline;
       if (!courseOutline) {
-        return <span className="text-muted-foreground">No chapter</span>;
+        return <span className="text-muted-foreground">No outline</span>;
       }
       return <div className="font-medium">{courseOutline.title}</div>;
     },
@@ -139,24 +139,17 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
             <DropdownMenuItem asChild>
               <Link href={`/livestreams/${livestream.slug}`}>View details</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/livestreams/${livestream.slug}/edit`}>
-                Edit livestream
-              </Link>
-            </DropdownMenuItem>
-            {livestream.url && (
-              <DropdownMenuItem asChild>
-                <a
-                  href={livestream.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Watch video
-                </a>
-              </DropdownMenuItem>
-            )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => {
+                // Delete action will be handled by parent component
+                const event = new CustomEvent("delete-livestream", {
+                  detail: { livestream },
+                });
+                window.dispatchEvent(event);
+              }}
+            >
               Delete livestream
             </DropdownMenuItem>
           </DropdownMenuContent>

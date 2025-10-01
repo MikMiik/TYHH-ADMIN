@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Search, Filter, RefreshCw } from "lucide-react";
 
 import { livestreamColumns } from "./columns";
@@ -36,9 +36,11 @@ import { toast } from "sonner";
 import {
   useGetLivestreamsQuery,
   useCreateLivestreamMutation,
+  useDeleteLivestreamMutation,
   type Livestream,
 } from "@/lib/features/api/livestreamApi";
 import { useGetCoursesQuery } from "@/lib/features/api/courseApi";
+import { createLivestreamSchema } from "@/lib/schemas/livestream";
 
 // Tham khảo quy tắc phát triển tại .github/development-instructions.md
 export default function LivestreamsPage() {
@@ -47,12 +49,18 @@ export default function LivestreamsPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [livestreamToDelete, setLivestreamToDelete] =
+    useState<Livestream | null>(null);
+  const [selectedCourseOutlines, setSelectedCourseOutlines] = useState<
+    Array<{ id: number; title: string }>
+  >([]);
 
   // Form state for creating livestream
   const [formData, setFormData] = useState({
     title: "",
     courseId: "",
-    url: "",
+    courseOutlineId: "",
   });
 
   // API queries
@@ -76,6 +84,10 @@ export default function LivestreamsPage() {
   // Create livestream mutation
   const [createLivestream, { isLoading: isCreating }] =
     useCreateLivestreamMutation();
+
+  // Delete livestream mutation
+  const [deleteLivestream, { isLoading: isDeleting }] =
+    useDeleteLivestreamMutation();
 
   // Transform data similar to courses page
   const livestreams = useMemo(() => {
@@ -128,6 +140,52 @@ export default function LivestreamsPage() {
     };
   }, [livestreams, pagination.total, livestreamsResponse?.stats]);
 
+  // Update course outlines when course is selected
+  useEffect(() => {
+    if (formData.courseId) {
+      const selectedCourse = coursesForSelectResponse?.courses?.find(
+        (course) => course.id.toString() === formData.courseId
+      );
+
+      if (selectedCourse?.outlines && selectedCourse.outlines.length > 0) {
+        setSelectedCourseOutlines(
+          selectedCourse.outlines.map((outline) => ({
+            id: outline.id,
+            title: outline.title,
+          }))
+        );
+      } else {
+        setSelectedCourseOutlines([]);
+      }
+      // Reset course outline selection when course changes
+      setFormData((prev) => ({ ...prev, courseOutlineId: "" }));
+    } else {
+      setSelectedCourseOutlines([]);
+      setFormData((prev) => ({ ...prev, courseOutlineId: "" }));
+    }
+  }, [formData.courseId, coursesForSelectResponse?.courses]);
+
+  // Listen for delete livestream events from columns
+  useEffect(() => {
+    const handleDeleteLivestream = (event: CustomEvent) => {
+      const { livestream } = event.detail;
+      setLivestreamToDelete(livestream);
+      setIsDeleteDialogOpen(true);
+    };
+
+    window.addEventListener(
+      "delete-livestream",
+      handleDeleteLivestream as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "delete-livestream",
+        handleDeleteLivestream as EventListener
+      );
+    };
+  }, []);
+
   const handleClearFilters = () => {
     setSearchValue("");
     setTopicFilter("all");
@@ -136,21 +194,25 @@ export default function LivestreamsPage() {
 
   const handleCreateLivestream = async () => {
     try {
-      // Basic validation
-      if (!formData.title.trim()) {
-        toast.error("Livestream title is required");
-        return;
-      }
-      if (!formData.url.trim()) {
-        toast.error("Livestream URL is required");
+      // Validation using Zod schema
+      const validationResult = createLivestreamSchema.safeParse({
+        title: formData.title.trim(),
+        courseId: formData.courseId ? parseInt(formData.courseId) : undefined,
+        courseOutlineId: formData.courseOutlineId
+          ? parseInt(formData.courseOutlineId)
+          : undefined,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.issues[0];
+        toast.error(firstError?.message || "Invalid form data");
         return;
       }
 
       const livestreamData = {
         title: formData.title.trim(),
-        courseId: formData.courseId ? parseInt(formData.courseId) : 0,
-        courseOutlineId: 0, // Default value since not implemented yet
-        url: formData.url.trim(),
+        courseId: parseInt(formData.courseId),
+        courseOutlineId: parseInt(formData.courseOutlineId),
       };
 
       await createLivestream(livestreamData).unwrap();
@@ -160,7 +222,7 @@ export default function LivestreamsPage() {
       setFormData({
         title: "",
         courseId: "",
-        url: "",
+        courseOutlineId: "",
       });
       setIsCreateDialogOpen(false);
       refetch();
@@ -177,6 +239,34 @@ export default function LivestreamsPage() {
           : error && typeof error === "object" && "message" in error
           ? String((error as Record<string, unknown>).message)
           : "Failed to create livestream";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleDeleteLivestream = async () => {
+    if (!livestreamToDelete) return;
+
+    try {
+      await deleteLivestream(livestreamToDelete.id).unwrap();
+      toast.success("Livestream deleted successfully!");
+
+      // Close dialog and reset state
+      setIsDeleteDialogOpen(false);
+      setLivestreamToDelete(null);
+      refetch();
+    } catch (error: unknown) {
+      console.error("Delete livestream error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to delete livestream";
       toast.error(errorMessage);
     }
   };
@@ -241,7 +331,7 @@ export default function LivestreamsPage() {
           </Button>
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Course
+            Add Livestream
           </Button>
         </div>
       </div>
@@ -434,7 +524,7 @@ export default function LivestreamsPage() {
             {/* Course */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="courseId" className="text-right">
-                Course
+                Course *
               </Label>
               <Select
                 value={formData.courseId}
@@ -443,33 +533,78 @@ export default function LivestreamsPage() {
                 }
               >
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select course" />
+                  <SelectValue
+                    placeholder="Select course"
+                    className="truncate"
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No course assigned</SelectItem>
                   {coursesForSelectResponse?.courses?.map((course) => (
-                    <SelectItem key={course.id} value={course.id.toString()}>
-                      {course.title}
+                    <SelectItem
+                      key={course.id}
+                      value={course.id.toString()}
+                      className="max-w-full"
+                    >
+                      <span
+                        className="truncate block max-w-[300px]"
+                        title={course.title}
+                      >
+                        {course.title}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* URL */}
+            {/* Course Outline */}
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="url" className="text-right">
-                URL *
+              <Label htmlFor="courseOutlineId" className="text-right">
+                Outline *
               </Label>
-              <Input
-                id="url"
-                placeholder="https://youtube.com/watch?v=..."
-                className="col-span-3"
-                value={formData.url}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, url: e.target.value }))
+              <Select
+                value={formData.courseOutlineId}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, courseOutlineId: value }))
                 }
-              />
+                disabled={
+                  !formData.courseId || selectedCourseOutlines.length === 0
+                }
+              >
+                <SelectTrigger className="col-span-3 w-full">
+                  <SelectValue
+                    placeholder="Select course outline"
+                    className="truncate"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedCourseOutlines.map((outline) => (
+                    <SelectItem
+                      key={outline.id}
+                      value={outline.id.toString()}
+                      className="max-w-full"
+                    >
+                      <span
+                        className="truncate block max-w-[300px]"
+                        title={outline.title}
+                      >
+                        {outline.title}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formData.courseId && selectedCourseOutlines.length === 0 && (
+                <p className="col-span-3 text-xs text-muted-foreground">
+                  No outlines available for selected course. Please create
+                  outlines for this course first.
+                </p>
+              )}
+              {!formData.courseId && (
+                <p className="col-span-3 text-xs text-muted-foreground">
+                  Please select a course first.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -483,10 +618,58 @@ export default function LivestreamsPage() {
             <Button
               onClick={handleCreateLivestream}
               disabled={
-                isCreating || !formData.title.trim() || !formData.url.trim()
+                isCreating ||
+                !formData.title.trim() ||
+                !formData.courseId ||
+                !formData.courseOutlineId
               }
             >
               {isCreating ? "Creating..." : "Create Livestream"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Livestream</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this livestream? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {livestreamToDelete && (
+            <div className="py-4">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-semibold">{livestreamToDelete.title}</h4>
+                <p className="text-sm text-muted-foreground">
+                  Course: {livestreamToDelete.course?.title}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Views: {livestreamToDelete.view || 0}
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setLivestreamToDelete(null);
+              }}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteLivestream}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Livestream"}
             </Button>
           </DialogFooter>
         </DialogContent>

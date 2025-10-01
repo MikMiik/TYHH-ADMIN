@@ -4,9 +4,10 @@ import {
   useGetLivestreamQuery,
   useDeleteLivestreamMutation,
   useUpdateLivestreamMutation,
+  type UpdateLivestreamData,
 } from "@/lib/features/api/livestreamApi";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import VideoUploader from "@/components/VideoUploader";
 import {
@@ -28,10 +29,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import React from "react";
 import Link from "next/link";
+import { useGetCoursesQuery } from "@/lib/features/api/courseApi";
+import { updateLivestreamSchema } from "@/lib/schemas/livestream";
 
 interface LivestreamDetailPageProps {
   params: Promise<{
@@ -46,6 +66,17 @@ export default function LivestreamDetailPage({
   const { slug } = React.use(params);
   const [isDeleting, setIsDeleting] = useState(false);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedCourseOutlines, setSelectedCourseOutlines] = useState<
+    Array<{ id: number; title: string }>
+  >([]);
+
+  // Edit form state
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    courseId: "",
+    courseOutlineId: "",
+  });
 
   // Use slug directly as identifier (BE supports slug)
   const livestreamSlug = slug;
@@ -60,10 +91,47 @@ export default function LivestreamDetailPage({
   const [deleteLivestream] = useDeleteLivestreamMutation();
   const [updateLivestream] = useUpdateLivestreamMutation();
 
+  // Get courses for edit dropdown
+  const { data: coursesForSelectResponse } = useGetCoursesQuery({
+    limit: 100, // Get all courses
+  });
+
+  // Populate edit form when livestream data is loaded
+  useEffect(() => {
+    if (livestream) {
+      setEditFormData({
+        title: livestream.title || "",
+        courseId: livestream.courseId?.toString() || "",
+        courseOutlineId: livestream.courseOutlineId?.toString() || "",
+      });
+    }
+  }, [livestream]);
+
+  // Update course outlines when course is selected in edit form
+  useEffect(() => {
+    if (editFormData.courseId) {
+      const selectedCourse = coursesForSelectResponse?.courses?.find(
+        (course) => course.id.toString() === editFormData.courseId
+      );
+
+      if (selectedCourse?.outlines && selectedCourse.outlines.length > 0) {
+        setSelectedCourseOutlines(
+          selectedCourse.outlines.map((outline) => ({
+            id: outline.id,
+            title: outline.title,
+          }))
+        );
+      } else {
+        setSelectedCourseOutlines([]);
+      }
+    } else {
+      setSelectedCourseOutlines([]);
+    }
+  }, [editFormData.courseId, coursesForSelectResponse?.courses]);
+
   // Action handlers
   const handleEdit = () => {
-    // TODO: Navigate to edit page or open edit modal
-    toast.info("Edit functionality coming soon");
+    setIsEditDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -93,8 +161,70 @@ export default function LivestreamDetailPage({
   };
 
   const handleWatchVideo = () => {
-    if (livestream?.url) {
-      window.open(livestream.url, "_blank", "noopener,noreferrer");
+    const videoUrl = `${process.env.NEXT_PUBLIC_CLIENT_URL}/livestreams/${livestream?.slug}`;
+    window.open(videoUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleUpdateLivestream = async () => {
+    if (!livestream) return;
+
+    try {
+      // Build update data object with only changed fields
+      const updateData: UpdateLivestreamData = {};
+
+      if (editFormData.title.trim() !== livestream.title) {
+        updateData.title = editFormData.title.trim();
+      }
+
+      if (editFormData.courseId !== livestream.courseId?.toString()) {
+        updateData.courseId = parseInt(editFormData.courseId);
+      }
+
+      if (
+        editFormData.courseOutlineId !== livestream.courseOutlineId?.toString()
+      ) {
+        updateData.courseOutlineId = parseInt(editFormData.courseOutlineId);
+      }
+
+      // If no changes, show message and return
+      if (Object.keys(updateData).length === 0) {
+        toast.info("No changes to update");
+        return;
+      }
+
+      // Validation using Zod schema
+      const validationResult = updateLivestreamSchema.safeParse(updateData);
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.issues[0];
+        toast.error(firstError?.message || "Invalid form data");
+        return;
+      }
+
+      await updateLivestream({
+        id: livestream.id,
+        data: updateData,
+      }).unwrap();
+
+      toast.success("Livestream updated successfully!");
+
+      // Close dialog and refetch data
+      setIsEditDialogOpen(false);
+      refetch();
+    } catch (error: unknown) {
+      console.error("Update livestream error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to update livestream";
+      toast.error(errorMessage);
     }
   };
 
@@ -357,7 +487,7 @@ export default function LivestreamDetailPage({
                           {livestream.courseOutline.title}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          Chapter • {livestream.courseOutline.slug}
+                          Outline • {livestream.courseOutline.slug}
                         </p>
                       </div>
                     </div>
@@ -409,7 +539,7 @@ export default function LivestreamDetailPage({
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Chapter ID:</span>
+                  <span className="text-muted-foreground">Outline ID:</span>
                   <span className="font-mono">
                     {livestream.courseOutlineId}
                   </span>
@@ -439,59 +569,151 @@ export default function LivestreamDetailPage({
               </div>
             </CardContent>
           </Card>
-
-          {/* Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {livestream.url && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={handleWatchVideo}
-                >
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  Watch Video
-                </Button>
-              )}
-
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleEdit}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Livestream
-              </Button>
-
-              {livestream.course && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link href={`/courses/${livestream.course.slug}`}>
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    View Course
-                  </Link>
-                </Button>
-              )}
-
-              <Button
-                variant="destructive"
-                className="w-full justify-start"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {isDeleting ? "Deleting..." : "Delete Livestream"}
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
+
+      {/* Edit Livestream Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Livestream</DialogTitle>
+            <DialogDescription>
+              Update the livestream information. Make sure all required fields
+              are filled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Title - Required */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-title" className="text-right">
+                Title *
+              </Label>
+              <Input
+                id="edit-title"
+                placeholder="Livestream title"
+                className="col-span-3"
+                value={editFormData.title}
+                onChange={(e) =>
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    title: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* Course */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-courseId" className="text-right">
+                Course *
+              </Label>
+              <Select
+                value={editFormData.courseId}
+                onValueChange={(value) =>
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    courseId: value,
+                    courseOutlineId: "", // Reset outline when course changes
+                  }))
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue
+                    placeholder="Select course"
+                    className="truncate"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {coursesForSelectResponse?.courses?.map((course) => (
+                    <SelectItem
+                      key={course.id}
+                      value={course.id.toString()}
+                      className="max-w-full"
+                    >
+                      <span
+                        className="truncate block max-w-[300px]"
+                        title={course.title}
+                      >
+                        {course.title}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Course Outline */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-courseOutlineId" className="text-right">
+                Outline *
+              </Label>
+              <Select
+                value={editFormData.courseOutlineId}
+                onValueChange={(value) =>
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    courseOutlineId: value,
+                  }))
+                }
+                disabled={
+                  !editFormData.courseId || selectedCourseOutlines.length === 0
+                }
+              >
+                <SelectTrigger className="col-span-3 w-full">
+                  <SelectValue
+                    placeholder="Select course outline"
+                    className="truncate"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedCourseOutlines.map((outline) => (
+                    <SelectItem
+                      key={outline.id}
+                      value={outline.id.toString()}
+                      className="max-w-full"
+                    >
+                      <span
+                        className="truncate block max-w-[300px]"
+                        title={outline.title}
+                      >
+                        {outline.title}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {editFormData.courseId && selectedCourseOutlines.length === 0 && (
+                <p className="col-span-3 text-xs text-muted-foreground">
+                  No outlines available for selected course.
+                </p>
+              )}
+              {!editFormData.courseId && (
+                <p className="col-span-3 text-xs text-muted-foreground">
+                  Please select a course first.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateLivestream}
+              disabled={
+                !editFormData.title.trim() ||
+                !editFormData.courseId ||
+                !editFormData.courseOutlineId
+              }
+            >
+              Update Livestream
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

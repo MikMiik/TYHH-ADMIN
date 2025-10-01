@@ -50,7 +50,6 @@ interface LivestreamsListResponse {
 
 export interface CreateLivestreamData {
   title: string;
-  slug?: string;
   courseId: number;
   courseOutlineId: number;
   url?: string;
@@ -58,7 +57,6 @@ export interface CreateLivestreamData {
 
 export interface UpdateLivestreamData {
   title?: string;
-  url?: string;
   courseId?: number;
   courseOutlineId?: number;
 }
@@ -142,50 +140,22 @@ export const livestreamApi = baseApi.injectEndpoints({
       ],
     }),
 
-    // Cập nhật status livestream
-    updateLivestreamStatus: builder.mutation<
-      Livestream, 
-      { id: number; status: 'scheduled' | 'live' | 'ended' | 'cancelled' }
-    >({
-      query: ({ id, status }) => ({
-        url: `/livestreams/${id}/status`,
-        method: 'PATCH',
-        body: { status },
-      }),
-      transformResponse: (response: ApiResponse<Livestream>) => {
-        if (!response.data) {
-          throw new Error(response.message || 'Failed to update livestream status');
-        }
-        return response.data;
-      },
-      invalidatesTags: (result, error, { id }) => [
-        { type: 'Livestream', id },
-        'Livestream',
-      ],
-    }),
-
-    // Lấy analytics livestream
+    // Lấy analytics livestream 
     getLivestreamAnalytics: builder.query<{
-      totalLivestreams: number;
-      liveLivestreams: number;
-      scheduledLivestreams: number;
+      total: number;
       totalViews: number;
-      averageViewTime: number;
+      averageViews: number;
     }, void>({
       query: () => '/livestreams/analytics',
       transformResponse: (response: ApiResponse<{
-        totalLivestreams: number;
-        liveLivestreams: number;
-        scheduledLivestreams: number;
+        total: number;
         totalViews: number;
-        averageViewTime: number;
+        averageViews: number;
       }>) => {
         return response.data || {
-          totalLivestreams: 0,
-          liveLivestreams: 0,
-          scheduledLivestreams: 0,
+          total: 0,
           totalViews: 0,
-          averageViewTime: 0,
+          averageViews: 0,
         };
       },
       providesTags: ['Livestream'],
@@ -200,6 +170,5 @@ export const {
   useCreateLivestreamMutation,
   useUpdateLivestreamMutation,
   useDeleteLivestreamMutation,
-  useUpdateLivestreamStatusMutation,
   useGetLivestreamAnalyticsQuery,
 } = livestreamApi;

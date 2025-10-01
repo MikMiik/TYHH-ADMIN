@@ -373,7 +373,7 @@ export default function DocumentDetailPage({
                           {document.livestream.courseOutline.title}
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          Chapter • {document.livestream.courseOutline.slug}
+                          Outline • {document.livestream.courseOutline.slug}
                         </p>
                       </div>
                     </div>
