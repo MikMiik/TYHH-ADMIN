@@ -28,29 +28,6 @@ import { useDeleteCourseMutation } from "@/lib/features/api/courseApi";
 import { toast } from "sonner";
 
 // Course Image Component with placeholder fallback
-const CourseImage = ({ course }: { course: Course }) => {
-  const [imageError] = useState(false);
-
-  if (!course.thumbnail || imageError) {
-    return (
-      <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
-        <BookOpen className="h-6 w-6 text-muted-foreground" />
-      </div>
-    );
-  }
-
-  return (
-    // <Image
-    //   src={course.thumbnail}
-    //   alt={course.title}
-    //   width={48}
-    //   height={48}
-    //   className="h-12 w-12 rounded-lg object-cover"
-    //   onError={() => setImageError(true)}
-    // />
-    null
-  );
-};
 
 // Actions component for course table
 const CourseActions = ({ course }: { course: Course }) => {
@@ -154,7 +131,6 @@ export const courseColumns: ColumnDef<Course>[] = [
       const course = row.original;
       return (
         <div className="flex items-center space-x-3">
-          <CourseImage course={course} />
           <div>
             <Link
               href={`/courses/${course.slug}`}

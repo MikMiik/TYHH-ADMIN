@@ -7,6 +7,9 @@ export interface ImageLazyProps {
   alt?: string;
   w?: number;
   h?: number;
+  quality?: number;
+  focus?: string;
+  onError?: () => void;
 }
 
 export default function ImageLazy({
@@ -15,6 +18,9 @@ export default function ImageLazy({
   alt,
   w,
   h,
+  quality = 90,
+  focus = "auto",
+  onError,
 }: ImageLazyProps) {
   const [showPlaceholder, setShowPlaceholder] = useState(true);
 
@@ -30,22 +36,30 @@ export default function ImageLazy({
 
   return (
     <Image
-      src={src}
-      alt={alt}
+      src={src || "/placeholder.svg"}
+      alt={alt || "image"}
       width={w}
       height={h}
       transformation={[
         {
           width: w,
           height: h,
+          crop: "maintain_ratio",
+          quality: quality,
+          format: "webp",
+          progressive: true,
+          cropMode: "extract",
+          focus: focus,
         },
       ]}
-      className={className}
+      className={`${className} image-render-crisp`}
       urlEndpoint={process.env.NEXT_PUBLIC_IK_URL_ENDPOINT || ""}
       loading="lazy"
       ref={imgRef}
-      style={
-        showPlaceholder
+      onError={onError}
+      style={{
+        imageRendering: "crisp-edges",
+        ...(showPlaceholder
           ? {
               backgroundImage: `url(${buildSrc({
                 urlEndpoint: process.env.NEXT_PUBLIC_IK_URL_ENDPOINT || "",
@@ -60,8 +74,8 @@ export default function ImageLazy({
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat",
             }
-          : {}
-      }
+          : {}),
+      }}
     />
   );
 }

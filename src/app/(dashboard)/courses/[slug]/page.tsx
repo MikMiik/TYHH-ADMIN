@@ -236,7 +236,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               removed.
             </p>
             <div className="flex gap-2 justify-center">
-              <Button variant="outline" onClick={() => router.back()}>
+              <Button variant="outline" onClick={() => router.push("/courses")}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Go Back
               </Button>
@@ -256,7 +256,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.back()}
+            onClick={() => router.push("/courses")}
             className="h-8 w-8 p-0 flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />

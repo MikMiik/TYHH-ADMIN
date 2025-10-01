@@ -146,4 +146,23 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgb(156 163 175);
   }
+
+  /* Image sharpness and quality improvements */
+  .image-render-crisp,
+  .image-render-crisp img {
+    image-rendering: crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    -ms-interpolation-mode: nearest-neighbor;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* ImageKit optimization class */
+  .imagekit-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
 }

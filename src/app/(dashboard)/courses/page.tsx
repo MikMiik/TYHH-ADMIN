@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Search, Filter, RefreshCw } from "lucide-react";
 
 import { courseColumns } from "./columns";
@@ -45,6 +46,7 @@ import { createCourseSchema } from "@/lib/schemas/course";
 
 // Tham khảo quy tắc phát triển tại .github/development-instructions.md
 export default function CoursesPage() {
+  const router = useRouter();
   const [searchValue, setSearchValue] = useState("");
   const [topicFilter, setTopicFilter] = useState<string>("all");
   const [freeFilter, setFreeFilter] = useState<string>("all");
@@ -61,10 +63,8 @@ export default function CoursesPage() {
     discount: "",
     isFree: false,
     purpose: "",
-    group: "",
+    topicId: "",
     content: "",
-    thumbnail: "",
-    introVideo: "",
   });
 
   // API queries
@@ -171,10 +171,10 @@ export default function CoursesPage() {
         discount: formData.discount ? parseFloat(formData.discount) : undefined,
         isFree: formData.isFree,
         purpose: formData.purpose.trim() || undefined,
-        group: formData.group.trim() || undefined,
+        group: formData.topicId && formData.topicId !== "0" 
+          ? coursesResponse?.topics?.find(topic => topic.id.toString() === formData.topicId)?.title
+          : undefined,
         content: formData.content.trim() || undefined,
-        thumbnail: formData.thumbnail.trim() || undefined,
-        introVideo: formData.introVideo.trim() || undefined,
       };
 
       // Frontend validation using Zod schema
@@ -186,7 +186,8 @@ export default function CoursesPage() {
         return;
       }
 
-      await createCourse(validationResult.data).unwrap();
+      // Create the course and get the result
+      const createdCourse = await createCourse(validationResult.data).unwrap();
       toast.success("Course created successfully!");
 
       // Reset form and close dialog
@@ -198,12 +199,15 @@ export default function CoursesPage() {
         discount: "",
         isFree: false,
         purpose: "",
-        group: "",
+        topicId: "",
         content: "",
-        thumbnail: "",
-        introVideo: "",
       });
       setIsCreateDialogOpen(false);
+
+      // Navigate to the course detail page using the slug
+      if (createdCourse?.slug) {
+        router.push(`/courses/${createdCourse.slug}`);
+      }
     } catch (error: unknown) {
       console.error("Create course error:", error);
       const errorMessage =
@@ -460,244 +464,219 @@ export default function CoursesPage() {
 
       {/* Create Course Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Course</DialogTitle>
-            <DialogDescription>
-              Add a new course to the system. Fill in the course information
-              below.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {/* Title - Required */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">
-                Title *
-              </Label>
-              <Input
-                id="title"
-                placeholder="Course title"
-                className="col-span-3"
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, title: e.target.value }))
-                }
-              />
-            </div>
+        <DialogContent className="sm:max-w-[600px] p-0">
+          <div className="max-h-[90vh] overflow-y-auto rounded-lg custom-scrollbar">
+            <div className="p-6">
+              <DialogHeader>
+                <DialogTitle>Create New Course</DialogTitle>
+                <DialogDescription>
+                  Add a new course to the system. Fill in the course information
+                  below.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                {/* Title - Required */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="title" className="text-right">
+                    Title *
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder="Course title"
+                    className="col-span-3"
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                  />
+                </div>
 
-            {/* Description */}
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="description" className="text-right mt-2">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="Brief description"
-                className="col-span-3"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-              />
-            </div>
+                {/* Description */}
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="description" className="text-right mt-2">
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Brief description"
+                    className="col-span-3"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-            {/* Teacher */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="teacherId" className="text-right">
-                Teacher
-              </Label>
-              <Select
-                value={formData.teacherId}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, teacherId: value }))
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select teacher" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">No teacher assigned</SelectItem>
-                  {teachersResponse?.items?.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                      {teacher.name} ({teacher.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                {/* Teacher */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="teacherId" className="text-right">
+                    Teacher
+                  </Label>
+                  <Select
+                    value={formData.teacherId}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, teacherId: value }))
+                    }
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select teacher" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No teacher assigned</SelectItem>
+                      {teachersResponse?.items?.map((teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                          {teacher.name} ({teacher.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Is Free Checkbox */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="isFree" className="text-right">
-                Free Course
-              </Label>
-              <div className="col-span-3 flex items-center space-x-2">
-                <Checkbox
-                  id="isFree"
-                  checked={formData.isFree}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      isFree: checked as boolean,
-                      price: checked ? "" : prev.price,
-                      discount: checked ? "" : prev.discount,
-                    }))
-                  }
-                />
-                <Label htmlFor="isFree" className="text-sm">
-                  This course is free for students
-                </Label>
+                {/* Is Free Checkbox */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="isFree" className="text-right">
+                    Free Course
+                  </Label>
+                  <div className="col-span-3 flex items-center space-x-2">
+                    <Checkbox
+                      id="isFree"
+                      checked={formData.isFree}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          isFree: checked as boolean,
+                          price: checked ? "" : prev.price,
+                          discount: checked ? "" : prev.discount,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="isFree" className="text-sm">
+                      This course is free for students
+                    </Label>
+                  </div>
+                </div>
+
+                {/* Price - Only show if not free */}
+                {!formData.isFree && (
+                  <>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="price" className="text-right">
+                        Price (₫)
+                      </Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        placeholder="1,000,000"
+                        className="col-span-3"
+                        value={formData.price}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            price: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="discount" className="text-right">
+                        Discount (₫)
+                      </Label>
+                      <Input
+                        id="discount"
+                        type="number"
+                        placeholder="800,000"
+                        className="col-span-3"
+                        value={formData.discount}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            discount: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Purpose */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="purpose" className="text-right">
+                    Purpose
+                  </Label>
+                  <Input
+                    id="purpose"
+                    placeholder="Course objective"
+                    className="col-span-3"
+                    value={formData.purpose}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, purpose: e.target.value }))
+                    }
+                  />
+                </div>
+
+                {/* Topic */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="topicId" className="text-right">
+                    Topic
+                  </Label>
+                  <Select
+                    value={formData.topicId}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, topicId: value }))
+                    }
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select topic" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">No topic assigned</SelectItem>
+                      {coursesResponse?.topics?.map((topic) => (
+                        <SelectItem key={topic.id} value={topic.id.toString()}>
+                          {topic.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Content */}
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label htmlFor="content" className="text-right mt-2">
+                    Content
+                  </Label>
+                  <Textarea
+                    id="content"
+                    placeholder="Detailed course content (HTML supported)"
+                    className="col-span-3"
+                    rows={3}
+                    value={formData.content}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, content: e.target.value }))
+                    }
+                  />
+                </div>
               </div>
-            </div>
-
-            {/* Price - Only show if not free */}
-            {!formData.isFree && (
-              <>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">
-                    Price (₫)
-                  </Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    placeholder="1000000"
-                    className="col-span-3"
-                    value={formData.price}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        price: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="discount" className="text-right">
-                    Discount (₫)
-                  </Label>
-                  <Input
-                    id="discount"
-                    type="number"
-                    placeholder="800000"
-                    className="col-span-3"
-                    value={formData.discount}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        discount: e.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Purpose */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="purpose" className="text-right">
-                Purpose
-              </Label>
-              <Input
-                id="purpose"
-                placeholder="Course objective"
-                className="col-span-3"
-                value={formData.purpose}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, purpose: e.target.value }))
-                }
-              />
-            </div>
-
-            {/* Group/Category */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="group" className="text-right">
-                Category
-              </Label>
-              <Input
-                id="group"
-                placeholder="e.g., Programming, Design"
-                className="col-span-3"
-                value={formData.group}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, group: e.target.value }))
-                }
-              />
-            </div>
-
-            {/* Content */}
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="content" className="text-right mt-2">
-                Content
-              </Label>
-              <Textarea
-                id="content"
-                placeholder="Detailed course content (HTML supported)"
-                className="col-span-3"
-                rows={3}
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, content: e.target.value }))
-                }
-              />
-            </div>
-
-            {/* Thumbnail URL */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="thumbnail" className="text-right">
-                Thumbnail URL
-              </Label>
-              <Input
-                id="thumbnail"
-                placeholder="https://example.com/image.jpg"
-                className="col-span-3"
-                value={formData.thumbnail}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    thumbnail: e.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            {/* Intro Video URL */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="introVideo" className="text-right">
-                Intro Video URL
-              </Label>
-              <Input
-                id="introVideo"
-                placeholder="https://youtube.com/watch?v=..."
-                className="col-span-3"
-                value={formData.introVideo}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    introVideo: e.target.value,
-                  }))
-                }
-              />
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateCourse}
+                  disabled={isCreating || !formData.title.trim()}
+                >
+                  {isCreating ? "Creating..." : "Create Course"}
+                </Button>
+              </DialogFooter>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
-              disabled={isCreating}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateCourse}
-              disabled={isCreating || !formData.title.trim()}
-            >
-              {isCreating ? "Creating..." : "Create Course"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
