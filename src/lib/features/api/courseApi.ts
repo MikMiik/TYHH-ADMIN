@@ -31,6 +31,7 @@ export interface Course {
     id: number;
     name: string;
     email: string;
+    username: string;
     CourseUser?: {
       createdAt: string;
     };
@@ -56,6 +57,13 @@ export interface Topic {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+}
+
+export interface Teacher {
+  id: number;
+  name: string;
+  email: string;
+  username: string;
 }
 
 interface CoursesListParams {
@@ -227,7 +235,9 @@ export const courseApi = baseApi.injectEndpoints({
     // Lấy danh sách topics
     getTopics: builder.query<Topic[], void>({
       query: () => '/topics',
-      transformResponse: (response: ApiResponse<Topic[]>) => response.data || [],
+      transformResponse: (response: ApiResponse<{ topics: Topic[]; total: number; currentPage: number; totalPages: number }>) => {
+        return response.data?.topics || [];
+      },
       providesTags: ['Topic'],
     }),
 
@@ -257,6 +267,55 @@ export const courseApi = baseApi.injectEndpoints({
       transformResponse: (response: ApiResponse) => ({ success: response.success }),
       invalidatesTags: (result, error, { courseId }) => [{ type: 'Course', id: courseId }, 'Course'],
     }),
+
+    // Remove student from course
+    removeStudentFromCourse: builder.mutation<{ success: boolean }, { courseId: number | string; userId: number }>({
+      query: ({ courseId, userId }) => ({
+        url: `/courses/${courseId}/students/${userId}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (response: ApiResponse) => ({ success: response.success }),
+      invalidatesTags: (result, error, { courseId }) => [{ type: 'Course', id: courseId }, 'Course'],
+    }),
+
+    // Get all available teachers
+    getTeachers: builder.query<Teacher[], void>({
+      query: () => '/courses/teachers',
+      transformResponse: (response: ApiResponse<Teacher[]>) => response.data || [],
+      providesTags: ['Teacher'],
+    }),
+
+    // Update course teacher
+    updateCourseTeacher: builder.mutation<Course, { courseId: number | string; teacherId: number | null }>({
+      query: ({ courseId, teacherId }) => ({
+        url: `/courses/${courseId}/teacher`,
+        method: 'PUT',
+        body: { teacherId },
+      }),
+      transformResponse: (response: ApiResponse<Course>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update teacher');
+        }
+        return response.data;
+      },
+      invalidatesTags: (result, error, { courseId }) => [{ type: 'Course', id: courseId }, 'Course'],
+    }),
+
+    // Update course topics
+    updateCourseTopics: builder.mutation<Course, { courseId: number | string; topicIds: number[] }>({
+      query: ({ courseId, topicIds }) => ({
+        url: `/courses/${courseId}/topics`,
+        method: 'PUT',
+        body: { topicIds },
+      }),
+      transformResponse: (response: ApiResponse<Course>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update topics');
+        }
+        return response.data;
+      },
+      invalidatesTags: (result, error, { courseId }) => [{ type: 'Course', id: courseId }, 'Course', 'Topic'],
+    }),
   }),
 });
 
@@ -275,4 +334,8 @@ export const {
   useGetTopicsQuery,
   useCreateTopicMutation,
   useAssignCourseTopicsMutation,
+  useRemoveStudentFromCourseMutation,
+  useGetTeachersQuery,
+  useUpdateCourseTeacherMutation,
+  useUpdateCourseTopicsMutation,
 } = courseApi;

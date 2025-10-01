@@ -23,6 +23,7 @@ export const baseApi = createApi({
     'Notification', 
     'SiteInfo',
     'Topic',
+    'Teacher',
     'Schedule',
     'City',
     'School',

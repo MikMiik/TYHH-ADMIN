@@ -8,8 +8,14 @@ import {
   useUpdateCourseOutlineMutation,
   useDeleteCourseOutlineMutation,
   useReorderCourseOutlinesMutation,
+  useRemoveStudentFromCourseMutation,
+  useGetTeachersQuery,
+  useGetTopicsQuery,
+  useUpdateCourseTeacherMutation,
+  useUpdateCourseTopicsMutation,
 } from "@/lib/features/api/courseApi";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -21,6 +27,8 @@ import {
   BookOpen,
   Tag,
   GripVertical,
+  X,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +50,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 import {
   validateCourseField,
@@ -182,6 +197,9 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   );
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
 
+  // State for topic selection
+  const [selectedTopicValue, setSelectedTopicValue] = useState<string>("");
+
   // Use slug directly as identifier (BE now supports both ID and slug)
   const courseSlug = slug;
 
@@ -198,6 +216,13 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const [updateCourseOutline] = useUpdateCourseOutlineMutation();
   const [deleteCourseOutline] = useDeleteCourseOutlineMutation();
   const [reorderCourseOutlines] = useReorderCourseOutlinesMutation();
+  const [removeStudentFromCourse] = useRemoveStudentFromCourseMutation();
+  const [updateCourseTeacher] = useUpdateCourseTeacherMutation();
+  const [updateCourseTopics] = useUpdateCourseTopicsMutation();
+
+  // Fetch teachers and topics data
+  const { data: teachers = [] } = useGetTeachersQuery();
+  const { data: topics = [] } = useGetTopicsQuery();
 
   // Drag & Drop sensors
   const sensors = useSensors(
@@ -236,11 +261,6 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
 
   const handleAddOutline = () => {
     setIsAddOutlineDialogOpen(true);
-  };
-
-  const handleManageStudents = () => {
-    // TODO: Navigate to student management page
-    toast.info("Student management functionality coming soon");
   };
 
   const handleCreateOutline = async () => {
@@ -333,6 +353,41 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     }
   };
 
+  // Handle remove student from course
+  const handleRemoveStudent = async (
+    studentId: number,
+    studentName: string
+  ) => {
+    if (!course?.id) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to remove "${studentName}" from this course?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await removeStudentFromCourse({
+        courseId: course.id,
+        userId: studentId,
+      }).unwrap();
+
+      toast.success(`${studentName} has been removed from the course`);
+      refetch(); // Refresh course data to update student list
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to remove student";
+      toast.error(errorMessage);
+    }
+  };
+
   // Handle edit outline
   const handleEditOutline = (outline: CourseOutline) => {
     setEditingOutline(outline);
@@ -415,6 +470,94 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
       toast.error(errorMessage);
     } finally {
       setIsDeletingOutline(false);
+    }
+  };
+
+  // Handle teacher change (direct update)
+  const handleTeacherChange = async (value: string) => {
+    if (!course?.id) return;
+
+    const teacherId = value === "none" ? null : parseInt(value);
+
+    try {
+      await updateCourseTeacher({
+        courseId: course.id,
+        teacherId,
+      }).unwrap();
+
+      toast.success("Course teacher updated successfully!");
+      refetch(); // Refresh course data
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to update teacher";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Handle add topic (direct update)
+  const handleAddTopic = async (topicIdStr: string) => {
+    if (!course?.id) return;
+
+    const topicId = parseInt(topicIdStr);
+    const currentTopicIds = course.topics?.map((t) => t.id) || [];
+    const newTopicIds = [...currentTopicIds, topicId];
+
+    try {
+      await updateCourseTopics({
+        courseId: course.id,
+        topicIds: newTopicIds,
+      }).unwrap();
+
+      toast.success("Topic added successfully!");
+      setSelectedTopicValue(""); // Reset select value
+      refetch(); // Refresh course data
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to add topic";
+      toast.error(errorMessage);
+    }
+  };
+
+  // Handle remove topic (direct update)
+  const handleRemoveTopic = async (topicId: number) => {
+    if (!course?.id) return;
+
+    const currentTopicIds = course.topics?.map((t) => t.id) || [];
+    const newTopicIds = currentTopicIds.filter((id) => id !== topicId);
+
+    try {
+      await updateCourseTopics({
+        courseId: course.id,
+        topicIds: newTopicIds,
+      }).unwrap();
+
+      toast.success("Topic removed successfully!");
+      refetch(); // Refresh course data
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to remove topic";
+      toast.error(errorMessage);
     }
   };
 
@@ -561,7 +704,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
       </div>
     );
   }
-
+  console.log(topics);
   return (
     <div className="space-y-6 p-4 lg:p-6">
       {/* Page Header with Actions */}
@@ -930,70 +1073,152 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
           </Card>
 
           {/* Teacher Info */}
-          {course.teacher && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Teacher</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback>
-                      {course.teacher.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h4 className="font-medium">{course.teacher.name}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {course.teacher.email}
-                    </p>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <UserCheck className="mr-2 h-5 w-5" />
+                Teacher
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Label htmlFor="teacher-select">Assign Teacher</Label>
+                <Select
+                  value={course.teacherId?.toString() || "none"}
+                  onValueChange={handleTeacherChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a teacher..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No teacher</SelectItem>
+                    {teachers.map((teacher) => (
+                      <SelectItem
+                        key={teacher.id}
+                        value={teacher.id.toString()}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{teacher.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {teacher.email}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {course.teacher && (
+                  <div className="flex items-center gap-3 p-2 bg-muted rounded-lg">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        {course.teacher.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {course.teacher.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {course.teacher.email}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Topics */}
-          {course.topics && course.topics.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <Tag className="mr-2 h-5 w-5" />
-                  Topics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {course.topics.map((topic) => (
-                    <Badge key={topic.id} variant="outline">
-                      {topic.title}
-                    </Badge>
-                  ))}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Tag className="mr-2 h-5 w-5" />
+                Topics ({course.topics?.length || 0})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {course.topics && course.topics.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {course.topics.map((topic) => (
+                      <div key={topic.id} className="flex items-center gap-1">
+                        <Badge variant="outline" className="pr-1">
+                          <span>{topic.title}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 ml-1 hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => handleRemoveTopic(topic.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add Topic Section */}
+                <div className="space-y-2">
+                  <Label>Add Topic</Label>
+                  <Select
+                    value={selectedTopicValue}
+                    onValueChange={(value) => {
+                      setSelectedTopicValue(value);
+                      handleAddTopic(value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a topic to add..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(topics || [])
+                        .filter(
+                          (topic) =>
+                            !course.topics?.some((ct) => ct.id === topic.id)
+                        )
+                        .map((topic) => (
+                          <SelectItem
+                            key={topic.id}
+                            value={topic.id.toString()}
+                          >
+                            {topic.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {(topics || []).filter(
+                    (topic) => !course.topics?.some((ct) => ct.id === topic.id)
+                  ).length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      All available topics have been added to this course.
+                    </p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          )}
+
+                {course.topics?.length === 0 && topics.length === 0 && (
+                  <div className="text-center py-4">
+                    <Tag className="mx-auto h-8 w-8 text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      No topics available. Create topics first.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Students */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center">
-                  <Users className="mr-2 h-5 w-5" />
-                  Students ({course.students?.length || 0})
-                </CardTitle>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleManageStudents}
-                >
-                  Manage
-                </Button>
-              </div>
+              <CardTitle className="text-lg flex items-center">
+                <Users className="mr-2 h-5 w-5" />
+                Students ({course.students?.length || 0})
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {course.students && course.students.length > 0 ? (
@@ -1001,7 +1226,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   {course.students.slice(0, 5).map((student) => (
                     <div
                       key={student.id}
-                      className="flex items-center gap-3 p-2 border rounded"
+                      className="flex items-center gap-3 p-2 border rounded group hover:border-primary/30 transition-colors"
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
@@ -1012,14 +1237,28 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                             .toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1 min-w-0">
+                      <Link
+                        href={`/users/${student.username}`}
+                        className="flex-1 min-w-0 hover:text-primary transition-colors"
+                      >
                         <p className="text-sm font-medium truncate">
                           {student.name}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
                           {student.email}
                         </p>
-                      </div>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                        onClick={() =>
+                          handleRemoveStudent(student.id, student.name)
+                        }
+                        title={`Remove ${student.name} from course`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                   {course.students.length > 5 && (
