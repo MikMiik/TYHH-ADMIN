@@ -14,6 +14,7 @@ export const baseApi = createApi({
   tagTypes: [
     'User', 
     'Course', 
+    'CourseOutline',
     'Livestream', 
     'Document', 
     'DocumentCategory',

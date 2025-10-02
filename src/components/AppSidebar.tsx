@@ -14,6 +14,7 @@ import {
   LifeBuoy,
   LogOut,
   User,
+  TableOfContents,
 } from "lucide-react";
 import {
   Sidebar,
@@ -116,6 +117,11 @@ const AppSidebar = () => {
           title: "Course Management",
           url: "/courses",
           icon: BookOpen,
+        },
+        {
+          title: "Outline Management",
+          url: "/course-outlines",
+          icon: TableOfContents,
         },
         {
           title: "Livestream Management",
