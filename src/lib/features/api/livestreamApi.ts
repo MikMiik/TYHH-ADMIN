@@ -59,6 +59,11 @@ export interface UpdateLivestreamData {
   title?: string;
   courseId?: number;
   courseOutlineId?: number;
+  url?: string;
+}
+
+export interface ReorderLivestreamsData {
+  orders: Array<{ id: number; order: number }>;
 }
 
 export const livestreamApi = baseApi.injectEndpoints({
@@ -160,6 +165,19 @@ export const livestreamApi = baseApi.injectEndpoints({
       },
       providesTags: ['Livestream'],
     }),
+
+    // Reorder livestreams within a course outline
+    reorderLivestreams: builder.mutation<{ message: string }, { courseOutlineId: number; data: ReorderLivestreamsData }>({
+      query: ({ courseOutlineId, data }) => ({
+        url: `/livestreams/course-outline/${courseOutlineId}/reorder`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<{ message: string }>) => {
+        return response.data || { message: response.message || 'Livestreams reordered successfully' };
+      },
+      invalidatesTags: ['Livestream'],
+    }),
   }),
 });
 
@@ -171,4 +189,5 @@ export const {
   useUpdateLivestreamMutation,
   useDeleteLivestreamMutation,
   useGetLivestreamAnalyticsQuery,
+  useReorderLivestreamsMutation,
 } = livestreamApi;

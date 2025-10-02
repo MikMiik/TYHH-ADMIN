@@ -5,6 +5,7 @@ import {
   useDeleteCourseOutlineMutation,
   useUpdateCourseOutlineMutation,
 } from "@/lib/features/api/courseOutlineApi";
+import { useReorderLivestreamsMutation } from "@/lib/features/api/livestreamApi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -18,6 +19,7 @@ import {
   Eye,
   Calendar,
   Hash,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +42,85 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import React from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Livestream Item Component
+interface SortableLivestreamItemProps {
+  livestream: {
+    id: number;
+    title: string;
+    slug: string;
+    url?: string;
+    view?: number;
+    order?: number;
+  };
+}
+
+function SortableLivestreamItem({ livestream }: SortableLivestreamItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: livestream.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors gap-3 bg-background"
+    >
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center">
+          <Play className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-medium truncate">{livestream.title}</h3>
+          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+            <div className="flex items-center space-x-1">
+              <Eye className="h-3 w-3" />
+              <span>{livestream.view || 0} views</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" asChild>
+        <Link href={`/livestreams/${livestream.slug}`}>View Details</Link>
+      </Button>
+    </div>
+  );
+}
 
 interface CourseOutlineDetailPageProps {
   params: Promise<{
@@ -72,6 +153,15 @@ export default function CourseOutlineDetailPage({
 
   const [deleteOutline] = useDeleteCourseOutlineMutation();
   const [updateOutline] = useUpdateCourseOutlineMutation();
+  const [reorderLivestreams] = useReorderLivestreamsMutation();
+
+  // Drag & Drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Populate edit form when outline data is loaded
   useEffect(() => {
@@ -138,6 +228,60 @@ export default function CourseOutlineDetailPage({
             "Failed to update course outline"
           : "Failed to update course outline";
       toast.error(String(errorMessage));
+    }
+  };
+
+  // Handle drag end for reordering livestreams
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!active || !over || active.id === over.id) {
+      return;
+    }
+
+    if (!outline?.livestreams) return;
+
+    const oldIndex = outline.livestreams.findIndex(
+      (item) => item.id === active.id
+    );
+    const newIndex = outline.livestreams.findIndex(
+      (item) => item.id === over.id
+    );
+
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Create new order array
+    const reorderedLivestreams = arrayMove(
+      outline.livestreams,
+      oldIndex,
+      newIndex
+    );
+
+    // Create orders payload for API
+    const orders = reorderedLivestreams.map((livestream, index) => ({
+      id: livestream.id,
+      order: index + 1,
+    }));
+
+    try {
+      await reorderLivestreams({
+        courseOutlineId: outline.id,
+        data: { orders },
+      }).unwrap();
+
+      toast.success("Livestreams reordered successfully!");
+      refetch(); // Refresh to get updated order
+    } catch (error: unknown) {
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String(error.data.message)
+          : "Failed to reorder livestreams";
+      toast.error(errorMessage);
     }
   };
 
@@ -313,34 +457,27 @@ export default function CourseOutlineDetailPage({
             </CardHeader>
             <CardContent>
               {outline.livestreams && outline.livestreams.length > 0 ? (
-                <div className="space-y-3">
-                  {outline.livestreams.map((livestream) => (
-                    <div
-                      key={livestream.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center">
-                          <Play className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-medium">{livestream.title}</h3>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div className="flex items-center space-x-1">
-                              <Eye className="h-3 w-3" />
-                              <span>{livestream.view || 0} views</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/livestreams/${livestream.slug}`}>
-                          View Details
-                        </Link>
-                      </Button>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={outline.livestreams.map(
+                      (livestream) => livestream.id
+                    )}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-3">
+                      {outline.livestreams.map((livestream) => (
+                        <SortableLivestreamItem
+                          key={livestream.id}
+                          livestream={livestream}
+                        />
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <div className="text-center py-8">
                   <Play className="mx-auto h-12 w-12 text-muted-foreground" />

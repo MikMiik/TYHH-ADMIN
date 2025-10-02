@@ -19,6 +19,7 @@ export interface CourseOutline {
     slug: string;
     url?: string;
     view?: number;
+    order?: number;
   }[];
   createdAt: string;
   updatedAt: string;
