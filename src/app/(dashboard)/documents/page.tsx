@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Plus, Search, Filter, RefreshCw } from "lucide-react";
+import { Plus, Search, Filter, RefreshCw, Upload } from "lucide-react";
 
 import { documentColumns } from "./columns";
 import { DataTableWithCard } from "@/components/ui/data-table-with-card";
@@ -33,6 +33,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import EnhancedPdfUploader from "@/components/EnhancedPdfUploader";
 
 import {
   useGetDocumentsQuery,
@@ -51,6 +52,7 @@ export default function DocumentsPage() {
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isPdfUploadDialogOpen, setIsPdfUploadDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(
     null
@@ -231,6 +233,45 @@ export default function DocumentsPage() {
     }
   };
 
+  const handlePdfDocumentCreate = async (data: {
+    title: string;
+    vip: boolean;
+    livestreamId: string;
+    url: string;
+  }) => {
+    try {
+      // Create document with the enhanced data
+      const documentData = {
+        title: data.title,
+        vip: data.vip,
+        livestreamId: data.livestreamId
+          ? parseInt(data.livestreamId)
+          : undefined,
+        url: data.url, // PDF URL from ImageKit
+      };
+
+      await createDocument(documentData).unwrap();
+      toast.success("PDF document created successfully!");
+
+      setIsPdfUploadDialogOpen(false);
+      refetch();
+    } catch (error: unknown) {
+      console.error("Create document from PDF error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to create document from PDF";
+      toast.error(errorMessage);
+    }
+  };
+
   const handleDeleteDocument = async () => {
     if (!documentToDelete) return;
 
@@ -316,6 +357,13 @@ export default function DocumentsPage() {
               className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
             />
             Refresh
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsPdfUploadDialogOpen(true)}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Upload PDF
           </Button>
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -654,6 +702,34 @@ export default function DocumentsPage() {
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Upload Dialog */}
+      <Dialog
+        open={isPdfUploadDialogOpen}
+        onOpenChange={setIsPdfUploadDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Upload PDF Document</DialogTitle>
+            <DialogDescription>
+              Upload a PDF file to create a new document. You can set the title,
+              mark as VIP, and assign to a livestream.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <EnhancedPdfUploader
+              onDocumentCreate={handlePdfDocumentCreate}
+              onUploadError={(error) => {
+                toast.error(`PDF upload failed: ${error}`);
+              }}
+              uploadFolder="documents"
+              title="Upload PDF Document"
+              livestreams={livestreamsForSelectResponse?.items || []}
+              isCreating={isCreating}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

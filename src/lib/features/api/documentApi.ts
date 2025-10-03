@@ -9,6 +9,7 @@ export interface Document {
   slug?: string;
   downloadCount: number;
   thumbnail?: string;                  // Document preview image
+  url?: string;                        // Document URL (PDF file)
   livestream?: {
     id: number;
     title: string;
@@ -59,6 +60,7 @@ export interface CreateDocumentData {
   title: string;
   slug?: string;
   thumbnail?: string;
+  url?: string;
   vip?: boolean;
   livestreamId?: number;
 }
@@ -66,6 +68,7 @@ export interface CreateDocumentData {
 export interface UpdateDocumentData {
   title?: string;
   thumbnail?: string;
+  url?: string;
   vip?: boolean;
   livestreamId?: number;
 }

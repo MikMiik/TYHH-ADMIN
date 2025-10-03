@@ -53,6 +53,7 @@ import {
 import { format } from "date-fns";
 import React from "react";
 import Link from "next/link";
+import PdfViewer from "@/components/PdfViewer";
 
 interface DocumentDetailPageProps {
   params: Promise<{
@@ -202,8 +203,26 @@ export default function DocumentDetailPage({
   };
 
   const handleDownload = () => {
-    // TODO: Implement download functionality
-    toast.info("Download functionality coming soon");
+    if (!document?.url) {
+      toast.error("No PDF file available for download");
+      return;
+    }
+
+    try {
+      const fullUrl = `${process.env.NEXT_PUBLIC_IK_URL_ENDPOINT || ""}${
+        document.url
+      }`;
+      const link = window.document.createElement("a");
+      link.href = fullUrl;
+      link.download = `${document.title || "document"}.pdf`;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      toast.success("Download started");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download PDF");
+    }
   };
 
   // Helper function to update document fields
@@ -408,6 +427,23 @@ export default function DocumentDetailPage({
                   title="Document Thumbnail"
                 />
               </div>
+
+              {/* Document PDF File */}
+              {document.url && (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm flex items-center">
+                    <FileText className="mr-2 h-4 w-4" />
+                    PDF Document
+                  </h4>
+                  <PdfViewer
+                    pdfUrl={`${process.env.NEXT_PUBLIC_IK_URL_ENDPOINT || ""}${
+                      document.url
+                    }`}
+                    title={document.title || "Document"}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
