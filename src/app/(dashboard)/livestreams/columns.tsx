@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Video, Eye } from "lucide-react";
+import { MoreHorizontal, Video, Eye, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -73,7 +73,19 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
       if (!courseOutline) {
         return <span className="text-muted-foreground">No outline</span>;
       }
-      return <div className="font-medium">{courseOutline.title}</div>;
+      return (
+        <div>
+          <Link
+            href={`/course-outlines/${courseOutline.slug}`}
+            className="font-medium hover:underline cursor-pointer"
+          >
+            {courseOutline.title}
+          </Link>
+          <div className="text-sm text-muted-foreground">
+            {courseOutline.slug}
+          </div>
+        </div>
+      );
     },
   },
   {
@@ -120,7 +132,10 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/livestreams/${livestream.slug}`}>View details</Link>
+              <Link href={`/livestreams/${livestream.slug}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                View details
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -133,6 +148,7 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
                 window.dispatchEvent(event);
               }}
             >
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete livestream
             </DropdownMenuItem>
           </DropdownMenuContent>

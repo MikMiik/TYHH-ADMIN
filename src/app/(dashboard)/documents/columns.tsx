@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, FileText } from "lucide-react";
+import { MoreHorizontal, FileText, Eye, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -70,7 +70,14 @@ export const documentColumns: ColumnDef<Document>[] = [
       }
       return (
         <div>
-          <div className="font-medium">{livestream.title}</div>
+          <div>
+            <Link
+              href={`/livestreams/${livestream.slug}`}
+              className="font-medium hover:underline cursor-pointer"
+            >
+              {livestream.title}
+            </Link>
+          </div>
           <div className="text-sm text-muted-foreground">{livestream.slug}</div>
           {livestream.course && (
             <div className="text-xs text-muted-foreground">
@@ -108,6 +115,14 @@ export const documentColumns: ColumnDef<Document>[] = [
     cell: ({ row }) => {
       const document = row.original;
 
+      const handleDeleteClick = () => {
+        // Dispatch custom event for delete
+        const event = new CustomEvent("delete-document", {
+          detail: { document },
+        });
+        window.dispatchEvent(event);
+      };
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -120,13 +135,17 @@ export const documentColumns: ColumnDef<Document>[] = [
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/documents/${document.id}`}>View details</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href={`/documents/${document.id}/edit`}>Edit document</Link>
+              <Link href={`/documents/${document.id}`}>
+                <Eye className="mr-2 h-4 w-4" />
+                View details
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={handleDeleteClick}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete document
             </DropdownMenuItem>
           </DropdownMenuContent>
