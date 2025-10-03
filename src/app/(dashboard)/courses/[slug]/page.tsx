@@ -423,7 +423,9 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
       setEditOutlineTitle("");
       setEditingOutline(null);
       setIsEditOutlineDialogOpen(false);
-      refetch(); // Refresh course data
+
+      // Refresh course data (outline slug may have changed)
+      refetch();
     } catch (error: unknown) {
       const errorMessage =
         error &&

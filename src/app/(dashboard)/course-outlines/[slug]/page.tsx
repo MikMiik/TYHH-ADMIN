@@ -5,7 +5,11 @@ import {
   useDeleteCourseOutlineMutation,
   useUpdateCourseOutlineMutation,
 } from "@/lib/features/api/courseOutlineApi";
-import { useReorderLivestreamsMutation } from "@/lib/features/api/livestreamApi";
+import {
+  useReorderLivestreamsMutation,
+  useCreateLivestreamMutation,
+} from "@/lib/features/api/livestreamApi";
+import { createLivestreamSchema } from "@/lib/schemas/livestream";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -20,6 +24,7 @@ import {
   Calendar,
   Hash,
   GripVertical,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -136,6 +141,13 @@ export default function CourseOutlineDetailPage({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+  // Add livestream state
+  const [isAddLivestreamDialogOpen, setIsAddLivestreamDialogOpen] =
+    useState(false);
+  const [addLivestreamFormData, setAddLivestreamFormData] = useState({
+    title: "",
+  });
+
   // Edit form state
   const [editFormData, setEditFormData] = useState({
     title: "",
@@ -154,6 +166,8 @@ export default function CourseOutlineDetailPage({
   const [deleteOutline] = useDeleteCourseOutlineMutation();
   const [updateOutline] = useUpdateCourseOutlineMutation();
   const [reorderLivestreams] = useReorderLivestreamsMutation();
+  const [createLivestream, { isLoading: isCreatingLivestream }] =
+    useCreateLivestreamMutation();
 
   // Drag & Drop sensors
   const sensors = useSensors(
@@ -213,14 +227,20 @@ export default function CourseOutlineDetailPage({
         return;
       }
 
-      await updateOutline({
+      const updatedOutline = await updateOutline({
         id: outline.id,
         data: { title: editFormData.title.trim() },
       }).unwrap();
 
       toast.success("Course outline updated successfully");
       setIsEditDialogOpen(false);
-      refetch(); // Refresh outline data
+
+      // If slug changed, redirect to new URL
+      if (updatedOutline.slug && updatedOutline.slug !== outline.slug) {
+        router.push(`/course-outlines/${updatedOutline.slug}`);
+      } else {
+        refetch(); // Only refetch if slug didn't change
+      }
     } catch (error: unknown) {
       const errorMessage =
         error && typeof error === "object" && "data" in error
@@ -228,6 +248,55 @@ export default function CourseOutlineDetailPage({
             "Failed to update course outline"
           : "Failed to update course outline";
       toast.error(String(errorMessage));
+    }
+  };
+
+  const handleAddLivestream = async () => {
+    if (!outline || !addLivestreamFormData.title.trim()) {
+      toast.error("Please enter livestream title");
+      return;
+    }
+
+    try {
+      // Validation using Zod schema
+      const validationResult = createLivestreamSchema.safeParse({
+        title: addLivestreamFormData.title.trim(),
+        courseId: outline.courseId,
+        courseOutlineId: outline.id,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.issues[0];
+        toast.error(firstError?.message || "Invalid form data");
+        return;
+      }
+
+      const livestreamData = {
+        title: addLivestreamFormData.title.trim(),
+        courseId: outline.courseId,
+        courseOutlineId: outline.id,
+      };
+
+      await createLivestream(livestreamData).unwrap();
+
+      toast.success("Livestream added successfully!");
+      setAddLivestreamFormData({ title: "" });
+      setIsAddLivestreamDialogOpen(false);
+      refetch(); // Refresh outline data to show new livestream
+    } catch (error: unknown) {
+      console.error("Create livestream error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to add livestream";
+      toast.error(errorMessage);
     }
   };
 
@@ -442,15 +511,26 @@ export default function CourseOutlineDetailPage({
           {/* Livestreams Section */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Play className="h-5 w-5" />
-                  <span>Related Livestreams</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-2">
+                    <Play className="h-5 w-5" />
+                    <span className="text-lg font-semibold">
+                      Related Livestreams
+                    </span>
+                    <Badge variant="secondary">
+                      {outline.livestreams?.length || 0} streams
+                    </Badge>
+                  </div>
+                  <Button
+                    onClick={() => setIsAddLivestreamDialogOpen(true)}
+                    size="sm"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Livestream
+                  </Button>
                 </div>
-                <Badge variant="secondary">
-                  {outline.livestreams?.length || 0} streams
-                </Badge>
-              </CardTitle>
+              </div>
               <CardDescription>
                 Livestreams associated with this course outline
               </CardDescription>
@@ -525,6 +605,90 @@ export default function CourseOutlineDetailPage({
               Cancel
             </Button>
             <Button onClick={handleUpdateOutline}>Update Outline</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Livestream Dialog */}
+      <Dialog
+        open={isAddLivestreamDialogOpen}
+        onOpenChange={setIsAddLivestreamDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Livestream</DialogTitle>
+            <DialogDescription>
+              Add a new livestream to this course outline. Fill in the
+              livestream information below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Title - Required */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="title" className="text-right">
+                Title *
+              </Label>
+              <Input
+                id="title"
+                placeholder="Livestream title"
+                className="col-span-3"
+                value={addLivestreamFormData.title}
+                onChange={(e) =>
+                  setAddLivestreamFormData({
+                    ...addLivestreamFormData,
+                    title: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            {/* Course - Pre-filled and disabled */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="courseId" className="text-right">
+                Course *
+              </Label>
+              <Input
+                id="courseId"
+                className="col-span-3"
+                value={outline?.course?.title || ""}
+                disabled
+                placeholder="Course (auto-selected)"
+              />
+            </div>
+
+            {/* Course Outline - Pre-filled and disabled */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="courseOutlineId" className="text-right">
+                Outline *
+              </Label>
+              <Input
+                id="courseOutlineId"
+                className="col-span-3"
+                value={outline?.title || ""}
+                disabled
+                placeholder="Outline (auto-selected)"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddLivestreamDialogOpen(false);
+                setAddLivestreamFormData({ title: "" });
+              }}
+              disabled={isCreatingLivestream}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddLivestream}
+              disabled={
+                isCreatingLivestream || !addLivestreamFormData.title.trim()
+              }
+            >
+              {isCreatingLivestream ? "Creating..." : "Create Livestream"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
