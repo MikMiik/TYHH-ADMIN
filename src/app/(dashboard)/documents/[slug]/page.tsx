@@ -5,6 +5,8 @@ import {
   useDeleteDocumentMutation,
   useUpdateDocumentMutation,
 } from "@/lib/features/api/documentApi";
+import { useGetLivestreamsQuery } from "@/lib/features/api/livestreamApi";
+import { updateDocumentSchema } from "@/lib/schemas/document";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,8 +21,19 @@ import {
   BookOpen,
   Video,
   Calendar,
+  Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -29,6 +42,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { format } from "date-fns";
 import React from "react";
 import Link from "next/link";
@@ -48,6 +69,15 @@ export default function DocumentDetailPage({
   const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(
     null
   );
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Form state for editing
+  const [editFormData, setEditFormData] = useState({
+    title: "",
+    vip: false,
+    livestreamId: "",
+  });
 
   // Use slug directly as identifier (BE supports both ID and slug)
   const documentSlug = slug;
@@ -59,13 +89,90 @@ export default function DocumentDetailPage({
     refetch,
   } = useGetDocumentQuery(documentSlug);
 
+  // Get livestreams for select dropdown
+  const { data: livestreamsForSelectResponse } = useGetLivestreamsQuery({
+    limit: 100, // Get all livestreams
+  });
+
   const [deleteDocument] = useDeleteDocumentMutation();
   const [updateDocument] = useUpdateDocumentMutation();
 
   // Action handlers
   const handleEdit = () => {
-    // TODO: Navigate to edit page or open edit modal
-    toast.info("Edit functionality coming soon");
+    if (!document) return;
+
+    // Initialize form with current document data
+    setEditFormData({
+      title: document.title || "",
+      vip: document.vip,
+      livestreamId: document.livestreamId
+        ? document.livestreamId.toString()
+        : "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateDocument = async () => {
+    if (!document) return;
+
+    try {
+      // Validation using Zod schema
+      const validationResult = updateDocumentSchema.safeParse({
+        title: editFormData.title.trim(),
+        vip: editFormData.vip,
+        livestreamId: editFormData.livestreamId
+          ? parseInt(editFormData.livestreamId)
+          : undefined,
+      });
+
+      if (!validationResult.success) {
+        const firstError = validationResult.error.issues[0];
+        toast.error(firstError?.message || "Invalid form data");
+        return;
+      }
+
+      setIsUpdating(true);
+
+      const updateData = {
+        title: editFormData.title.trim(),
+        vip: editFormData.vip,
+        livestreamId: editFormData.livestreamId
+          ? parseInt(editFormData.livestreamId)
+          : undefined,
+      };
+
+      // Await the update and get the updated document (with new slug)
+      const updated = await updateDocument({
+        id: document.id,
+        data: updateData,
+      }).unwrap();
+
+      toast.success("Document updated successfully!");
+      setIsEditDialogOpen(false);
+
+      // If slug changed, redirect to new slug URL
+      if (updated.slug && updated.slug !== document.slug) {
+        router.replace(`/documents/${updated.slug}`);
+      } else {
+        refetch();
+      }
+    } catch (error: unknown) {
+      console.error("Update document error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to update document";
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -464,70 +571,120 @@ export default function DocumentDetailPage({
               </div>
             </CardContent>
           </Card>
-
-          {/* Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleDownload}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Document
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={handleEdit}
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Document
-              </Button>
-
-              {document.livestream && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link href={`/livestreams/${document.livestream.slug}`}>
-                    <Video className="mr-2 h-4 w-4" />
-                    View Livestream
-                  </Link>
-                </Button>
-              )}
-
-              {document.livestream?.course && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  asChild
-                >
-                  <Link href={`/courses/${document.livestream.course.slug}`}>
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    View Course
-                  </Link>
-                </Button>
-              )}
-
-              <Button
-                variant="destructive"
-                className="w-full justify-start"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {isDeleting ? "Deleting..." : "Delete Document"}
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
+
+      {/* Edit Document Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Document</DialogTitle>
+            <DialogDescription>
+              Update document information. Changes will be saved immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Title - Required */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-title" className="text-right">
+                Title *
+              </Label>
+              <Input
+                id="edit-title"
+                placeholder="Document title"
+                className="col-span-3"
+                value={editFormData.title}
+                onChange={(e) =>
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    title: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            {/* VIP Checkbox */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-vip" className="text-left">
+                VIP Document
+              </Label>
+              <div className="col-span-3 flex items-center space-x-2">
+                <Checkbox
+                  id="edit-vip"
+                  checked={editFormData.vip}
+                  onCheckedChange={(checked) =>
+                    setEditFormData((prev) => ({ ...prev, vip: !!checked }))
+                  }
+                />
+                <Label htmlFor="edit-vip" className="text-sm">
+                  Requires VIP access
+                </Label>
+              </div>
+            </div>
+
+            {/* Livestream */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-livestreamId" className="text-left">
+                Livestream
+              </Label>
+              <Select
+                value={
+                  editFormData.livestreamId === ""
+                    ? "none"
+                    : editFormData.livestreamId
+                }
+                onValueChange={(value) =>
+                  setEditFormData((prev) => ({
+                    ...prev,
+                    livestreamId: value === "none" ? "" : value,
+                  }))
+                }
+              >
+                <SelectTrigger className="col-span-3  w-full">
+                  <SelectValue
+                    placeholder="Select livestream (optional)"
+                    className="truncate"
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No livestream</SelectItem>
+                  {livestreamsForSelectResponse?.items?.map((livestream) => (
+                    <SelectItem
+                      key={livestream.id}
+                      value={livestream.id.toString()}
+                      className="max-w-full"
+                    >
+                      <span
+                        className="truncate block max-w-[300px]"
+                        title={livestream.title}
+                      >
+                        {livestream.title}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpdateDocument}
+              disabled={isUpdating || !editFormData.title.trim()}
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isUpdating ? "Updating..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -142,6 +142,8 @@ const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
                     <Image
                       src={previewUrl}
                       alt="Preview"
+                      width={400}
+                      height={192}
                       className="w-full h-48 object-cover rounded border"
                     />
                     <Button

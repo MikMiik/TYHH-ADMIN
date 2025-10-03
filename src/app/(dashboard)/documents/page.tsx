@@ -59,7 +59,6 @@ export default function DocumentsPage() {
   // Form state for creating document
   const [formData, setFormData] = useState({
     title: "",
-    thumbnail: "",
     vip: false,
     livestreamId: "",
   });
@@ -184,7 +183,6 @@ export default function DocumentsPage() {
       // Validation using Zod schema
       const validationResult = createDocumentSchema.safeParse({
         title: formData.title.trim(),
-        thumbnail: formData.thumbnail.trim() || undefined,
         vip: formData.vip,
         livestreamId: formData.livestreamId
           ? parseInt(formData.livestreamId)
@@ -199,7 +197,6 @@ export default function DocumentsPage() {
 
       const documentData = {
         title: formData.title.trim(),
-        thumbnail: formData.thumbnail.trim() || undefined,
         vip: formData.vip,
         livestreamId: formData.livestreamId
           ? parseInt(formData.livestreamId)
@@ -212,7 +209,6 @@ export default function DocumentsPage() {
       // Reset form and close dialog
       setFormData({
         title: "",
-        thumbnail: "",
         vip: false,
         livestreamId: "",
       });
@@ -551,28 +547,9 @@ export default function DocumentsPage() {
               />
             </div>
 
-            {/* Thumbnail URL */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="thumbnail" className="text-right">
-                Thumbnail
-              </Label>
-              <Input
-                id="thumbnail"
-                placeholder="Thumbnail image URL"
-                className="col-span-3"
-                value={formData.thumbnail}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    thumbnail: e.target.value,
-                  }))
-                }
-              />
-            </div>
-
             {/* VIP Checkbox */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="vip" className="text-right">
+            <div className="grid grid-cols-4 items-center gap-5">
+              <Label htmlFor="vip" className="text-left">
                 VIP Document
               </Label>
               <div className="col-span-3 flex items-center space-x-2">
@@ -595,9 +572,14 @@ export default function DocumentsPage() {
                 Livestream
               </Label>
               <Select
-                value={formData.livestreamId}
+                value={
+                  formData.livestreamId === "" ? "none" : formData.livestreamId
+                }
                 onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, livestreamId: value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    livestreamId: value === "none" ? "" : value,
+                  }))
                 }
               >
                 <SelectTrigger className="col-span-3">
@@ -607,7 +589,7 @@ export default function DocumentsPage() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No livestream</SelectItem>
+                  <SelectItem value="none">No livestream</SelectItem>
                   {livestreamsForSelectResponse?.items?.map((livestream) => (
                     <SelectItem
                       key={livestream.id}
