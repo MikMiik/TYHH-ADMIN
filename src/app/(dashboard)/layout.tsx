@@ -1,6 +1,7 @@
 import AppSidebar from "@/components/AppSidebar";
 import Navbar from "@/components/Navbar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 import { cookies } from "next/headers";
 
 export default async function DashboardLayout({
@@ -19,6 +20,7 @@ export default async function DashboardLayout({
         <Navbar />
         <div className="px-4">{children}</div>
       </main>
+      <Toaster />
     </SidebarProvider>
     // </ProtectedRoute>
   );

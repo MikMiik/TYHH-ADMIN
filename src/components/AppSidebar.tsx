@@ -225,46 +225,6 @@ const AppSidebar = () => {
             </SidebarGroupContent>
           </SidebarGroup>
         ))}
-
-        {/* Help Section */}
-        <Collapsible className="group/collapsible">
-          <SidebarGroup>
-            <SidebarGroupLabel asChild>
-              <CollapsibleTrigger>
-                Help
-                <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </CollapsibleTrigger>
-            </SidebarGroupLabel>
-            <CollapsibleContent>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActivePath("/help/support")}
-                    >
-                      <Link href="/help/support">
-                        <LifeBuoy />
-                        Support
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActivePath("/help/feedback")}
-                    >
-                      <Link href="/help/feedback">
-                        <Send />
-                        Feedback
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
       </SidebarContent>
       {/* Sidebar Footer - chỉ hiển thị nếu đã đăng nhập */}
       {isAuthenticated && user && (

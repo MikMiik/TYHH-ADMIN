@@ -1,30 +1,7 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
-import {
-  Settings,
-  Globe,
-  MapPin,
-  Building,
-  RefreshCw,
-  Plus,
-  Edit,
-  Trash2,
-  X,
-  Server,
-} from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -32,1148 +9,1148 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-
 import {
-  SiteInfo,
-  Social,
-  City,
-  School,
-  useGetSiteSettingsQuery,
-  useCreateSiteSettingMutation,
-  useUpdateSiteSettingMutation,
-  useDeleteSiteSettingMutation,
-  useGetSocialLinksQuery,
-  useCreateSocialLinkMutation,
-  useUpdateSocialLinkMutation,
-  useDeleteSocialLinkMutation,
+  useGetSiteInfoQuery,
+  useUpdateSiteInfoMutation,
   useGetCitiesQuery,
-  useCreateCityMutation,
+  useAddCityMutation,
   useUpdateCityMutation,
   useDeleteCityMutation,
   useGetSchoolsQuery,
-  useCreateSchoolMutation,
+  useAddSchoolMutation,
   useUpdateSchoolMutation,
   useDeleteSchoolMutation,
-  useGetBackgroundJobsQuery,
-  useRetryBackgroundJobMutation,
-  useDeleteBackgroundJobMutation,
-  useClearFailedJobsMutation,
+  useGetNotificationsQuery,
+  useAddNotificationMutation,
+  useUpdateNotificationMutation,
+  useDeleteNotificationMutation,
+  useGetQueueQuery,
+  useGetQueueStatsQuery,
+  useRetryQueueJobMutation,
+  useDeleteQueueJobMutation,
+  type City,
+  type School,
+  type Notification,
+  type QueueJob,
 } from "@/lib/features/api/systemApi";
+import { Edit, Save, X, Plus, Trash2 } from "lucide-react";
 
-export default function SystemPage() {
-  const [activeTab, setActiveTab] = useState("settings");
+interface SiteInfoForm {
+  siteName: string;
+  companyName: string;
+  email: string;
+  taxCode: string;
+  phone: string;
+  address: string;
+}
 
-  // Dialog states
-  const [settingDialog, setSettingDialog] = useState<{
-    isOpen: boolean;
-    isEditing: boolean;
-    setting?: SiteInfo;
-  }>({ isOpen: false, isEditing: false });
+interface CityForm {
+  name: string;
+}
 
-  const [socialDialog, setSocialDialog] = useState<{
-    isOpen: boolean;
-    isEditing: boolean;
-    social?: Social;
-  }>({ isOpen: false, isEditing: false });
+interface SchoolForm {
+  name: string;
+  cityId: number | undefined;
+}
 
-  const [cityDialog, setCityDialog] = useState<{
-    isOpen: boolean;
-    isEditing: boolean;
-    city?: City;
-  }>({ isOpen: false, isEditing: false });
+interface NotificationForm {
+  title: string;
+  content: string;
+  type: string;
+}
 
-  const [schoolDialog, setSchoolDialog] = useState<{
-    isOpen: boolean;
-    isEditing: boolean;
-    school?: School;
-  }>({ isOpen: false, isEditing: false });
+// Site Information Component
+function SiteInfoTab() {
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Form states
-  const [settingForm, setSettingForm] = useState({ key: "", value: "" });
-  const [socialForm, setSocialForm] = useState({ platform: "", url: "" });
-  const [cityForm, setCityForm] = useState({ name: "" });
-  const [schoolForm, setSchoolForm] = useState({ name: "", cityId: "" });
+  const { data: siteInfo, isLoading: siteInfoLoading } = useGetSiteInfoQuery();
+  const [updateSiteInfo, { isLoading: updating }] = useUpdateSiteInfoMutation();
 
-  // API hooks
   const {
-    data: siteSettings,
-    isLoading: isLoadingSettings,
-    refetch: refetchSettings,
-  } = useGetSiteSettingsQuery();
-  const {
-    data: socialLinks,
-    isLoading: isLoadingSocials,
-    refetch: refetchSocials,
-  } = useGetSocialLinksQuery();
-  const {
-    data: cities,
-    isLoading: isLoadingCities,
-    refetch: refetchCities,
-  } = useGetCitiesQuery();
-  const {
-    data: schools,
-    isLoading: isLoadingSchools,
-    refetch: refetchSchools,
-  } = useGetSchoolsQuery({});
-  const {
-    data: jobsData,
-    isLoading: isLoadingJobs,
-    refetch: refetchJobs,
-  } = useGetBackgroundJobsQuery({
-    page: 1,
-    limit: 20,
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<SiteInfoForm>({
+    defaultValues: siteInfo || {},
   });
 
-  const [createSiteSetting, { isLoading: isCreatingSetting }] =
-    useCreateSiteSettingMutation();
-  const [updateSiteSetting, { isLoading: isUpdatingSetting }] =
-    useUpdateSiteSettingMutation();
-  const [deleteSiteSetting, { isLoading: isDeletingSetting }] =
-    useDeleteSiteSettingMutation();
+  React.useEffect(() => {
+    if (siteInfo) {
+      reset(siteInfo);
+    }
+  }, [siteInfo, reset]);
 
-  const [createSocialLink, { isLoading: isCreatingSocial }] =
-    useCreateSocialLinkMutation();
-  const [updateSocialLink, { isLoading: isUpdatingSocial }] =
-    useUpdateSocialLinkMutation();
-  const [deleteSocialLink, { isLoading: isDeletingSocial }] =
-    useDeleteSocialLinkMutation();
-
-  const [createCity, { isLoading: isCreatingCity }] = useCreateCityMutation();
-  const [updateCity, { isLoading: isUpdatingCity }] = useUpdateCityMutation();
-  const [deleteCity, { isLoading: isDeletingCity }] = useDeleteCityMutation();
-
-  const [createSchool, { isLoading: isCreatingSchool }] =
-    useCreateSchoolMutation();
-  const [updateSchool, { isLoading: isUpdatingSchool }] =
-    useUpdateSchoolMutation();
-  const [deleteSchool, { isLoading: isDeletingSchool }] =
-    useDeleteSchoolMutation();
-
-  const [retryJob, { isLoading: isRetryingJob }] =
-    useRetryBackgroundJobMutation();
-  const [deleteJob, { isLoading: isDeletingJob }] =
-    useDeleteBackgroundJobMutation();
-  const [clearFailedJobs, { isLoading: isClearingJobs }] =
-    useClearFailedJobsMutation();
-
-  // Handle setting operations
-  const handleSaveSetting = async () => {
+  const onSubmit = async (data: SiteInfoForm) => {
     try {
-      if (settingDialog.isEditing) {
-        await updateSiteSetting({
-          key: settingDialog.setting!.key,
-          value: settingForm.value,
-        }).unwrap();
-        toast.success("Setting updated successfully");
-      } else {
-        await createSiteSetting(settingForm).unwrap();
-        toast.success("Setting created successfully");
-      }
-      setSettingDialog({ isOpen: false, isEditing: false });
-      setSettingForm({ key: "", value: "" });
-      refetchSettings();
+      await updateSiteInfo(data).unwrap();
+      toast.success("Site information updated successfully");
+      setIsEditing(false);
     } catch {
-      toast.error("Failed to save setting");
+      toast.error("Failed to update site information");
     }
   };
 
-  const handleDeleteSetting = async (key: string) => {
-    if (confirm("Are you sure you want to delete this setting?")) {
-      try {
-        await deleteSiteSetting(key).unwrap();
-        toast.success("Setting deleted successfully");
-        refetchSettings();
-      } catch {
-        toast.error("Failed to delete setting");
-      }
-    }
+  const handleCancel = () => {
+    reset(siteInfo || {});
+    setIsEditing(false);
   };
 
-  // Handle social operations
-  const handleSaveSocial = async () => {
+  if (siteInfoLoading) {
+    return <div>Loading site information...</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Site Information</CardTitle>
+            <CardDescription>
+              Manage basic site and company information
+            </CardDescription>
+          </div>
+          {!isEditing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="siteName">Site Name</Label>
+              <Input
+                id="siteName"
+                {...register("siteName", { required: "Site name is required" })}
+                disabled={!isEditing}
+              />
+              {errors.siteName && (
+                <p className="text-sm text-red-500">
+                  {errors.siteName.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name</Label>
+              <Input
+                id="companyName"
+                {...register("companyName", {
+                  required: "Company name is required",
+                })}
+                disabled={!isEditing}
+              />
+              {errors.companyName && (
+                <p className="text-sm text-red-500">
+                  {errors.companyName.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^\S+@\S+$/i,
+                    message: "Invalid email address",
+                  },
+                })}
+                disabled={!isEditing}
+              />
+              {errors.email && (
+                <p className="text-sm text-red-500">{errors.email.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="taxCode">Tax Code</Label>
+              <Input
+                id="taxCode"
+                {...register("taxCode")}
+                disabled={!isEditing}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input id="phone" {...register("phone")} disabled={!isEditing} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address">Address</Label>
+            <Input
+              id="address"
+              {...register("address")}
+              disabled={!isEditing}
+            />
+          </div>
+
+          {isEditing && (
+            <div className="flex space-x-2 pt-4">
+              <Button type="submit" disabled={updating}>
+                <Save className="h-4 w-4 mr-2" />
+                {updating ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={updating}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </div>
+          )}
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Cities Management Component
+function CitiesTab() {
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const { data: cities, isLoading: citiesLoading } = useGetCitiesQuery();
+  const [addCity, { isLoading: creating }] = useAddCityMutation();
+  const [updateCity, { isLoading: updating }] = useUpdateCityMutation();
+  const [deleteCity, { isLoading: deleting }] = useDeleteCityMutation();
+
+  const {
+    register: registerNew,
+    handleSubmit: handleSubmitNew,
+    reset: resetNew,
+  } = useForm<CityForm>();
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    reset: resetEdit,
+  } = useForm<CityForm>();
+
+  const onCreateSubmit = async (data: CityForm) => {
     try {
-      if (socialDialog.isEditing) {
-        await updateSocialLink({
-          id: socialDialog.social!.id,
-          ...socialForm,
-        }).unwrap();
-        toast.success("Social link updated successfully");
-      } else {
-        await createSocialLink(socialForm).unwrap();
-        toast.success("Social link created successfully");
-      }
-      setSocialDialog({ isOpen: false, isEditing: false });
-      setSocialForm({ platform: "", url: "" });
-      refetchSocials();
+      await addCity(data).unwrap();
+      toast.success("City created successfully");
+      resetNew();
+      setIsAddingNew(false);
     } catch {
-      toast.error("Failed to save social link");
+      toast.error("Failed to create city");
     }
   };
 
-  const handleDeleteSocial = async (id: string) => {
-    if (confirm("Are you sure you want to delete this social link?")) {
-      try {
-        await deleteSocialLink(id).unwrap();
-        toast.success("Social link deleted successfully");
-        refetchSocials();
-      } catch {
-        toast.error("Failed to delete social link");
-      }
-    }
-  };
+  const onUpdateSubmit = async (data: CityForm) => {
+    if (!editingId) return;
 
-  // Handle city operations
-  const handleSaveCity = async () => {
     try {
-      if (cityDialog.isEditing) {
-        await updateCity({
-          id: cityDialog.city!.id,
-          name: cityForm.name,
-        }).unwrap();
-        toast.success("City updated successfully");
-      } else {
-        await createCity({ name: cityForm.name }).unwrap();
-        toast.success("City created successfully");
-      }
-      setCityDialog({ isOpen: false, isEditing: false });
-      setCityForm({ name: "" });
-      refetchCities();
+      await updateCity({ id: editingId, data }).unwrap();
+      toast.success("City updated successfully");
+      setEditingId(null);
+      resetEdit();
     } catch {
-      toast.error("Failed to save city");
+      toast.error("Failed to update city");
     }
   };
 
-  const handleDeleteCity = async (id: string) => {
-    if (confirm("Are you sure you want to delete this city?")) {
-      try {
-        await deleteCity(id).unwrap();
-        toast.success("City deleted successfully");
-        refetchCities();
-      } catch {
-        toast.error("Failed to delete city");
-      }
-    }
-  };
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this city?")) return;
 
-  // Handle school operations
-  const handleSaveSchool = async () => {
     try {
-      if (schoolDialog.isEditing) {
-        await updateSchool({
-          id: schoolDialog.school!.id,
-          ...schoolForm,
-        }).unwrap();
-        toast.success("School updated successfully");
-      } else {
-        await createSchool(schoolForm).unwrap();
-        toast.success("School created successfully");
-      }
-      setSchoolDialog({ isOpen: false, isEditing: false });
-      setSchoolForm({ name: "", cityId: "" });
-      refetchSchools();
+      await deleteCity(id).unwrap();
+      toast.success("City deleted successfully");
     } catch {
-      toast.error("Failed to save school");
+      toast.error("Failed to delete city");
     }
   };
 
-  const handleDeleteSchool = async (id: string) => {
-    if (confirm("Are you sure you want to delete this school?")) {
-      try {
-        await deleteSchool(id).unwrap();
-        toast.success("School deleted successfully");
-        refetchSchools();
-      } catch {
-        toast.error("Failed to delete school");
-      }
+  const startEdit = (city: City) => {
+    setEditingId(city.id);
+    resetEdit({ name: city.name });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    resetEdit();
+  };
+
+  if (citiesLoading) {
+    return <div>Loading cities...</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Cities Management</CardTitle>
+            <CardDescription>
+              Manage the list of cities in the system
+            </CardDescription>
+          </div>
+          <Button onClick={() => setIsAddingNew(true)} disabled={isAddingNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add City
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {isAddingNew && (
+            <form
+              onSubmit={handleSubmitNew(onCreateSubmit)}
+              className="border rounded-lg p-4"
+            >
+              <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="City name"
+                  {...registerNew("name", {
+                    required: "City name is required",
+                  })}
+                  className="flex-1"
+                />
+                <Button type="submit" size="sm" disabled={creating}>
+                  {creating ? "Creating..." : "Save"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingNew(false);
+                    resetNew();
+                  }}
+                  disabled={creating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+
+          <div className="space-y-2">
+            {cities?.map((city: City) => (
+              <div
+                key={city.id}
+                className="flex items-center justify-between border rounded-lg p-3"
+              >
+                {editingId === city.id ? (
+                  <form
+                    onSubmit={handleSubmitEdit(onUpdateSubmit)}
+                    className="flex items-center space-x-2 flex-1"
+                  >
+                    <Input
+                      {...registerEdit("name", {
+                        required: "City name is required",
+                      })}
+                      className="flex-1"
+                    />
+                    <Button type="submit" size="sm" disabled={updating}>
+                      {updating ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelEdit}
+                      disabled={updating}
+                    >
+                      Cancel
+                    </Button>
+                  </form>
+                ) : (
+                  <>
+                    <span className="font-medium">{city.name}</span>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => startEdit(city)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(city.id)}
+                        disabled={deleting}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+            {cities?.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No cities found. Add your first city above.
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Schools Management Component
+function SchoolsTab() {
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const { data: cities } = useGetCitiesQuery();
+  const { data: schools, isLoading: schoolsLoading } = useGetSchoolsQuery();
+  const [addSchool, { isLoading: creating }] = useAddSchoolMutation();
+  const [updateSchool, { isLoading: updating }] = useUpdateSchoolMutation();
+  const [deleteSchool, { isLoading: deleting }] = useDeleteSchoolMutation();
+
+  const {
+    register: registerNew,
+    handleSubmit: handleSubmitNew,
+    reset: resetNew,
+  } = useForm<SchoolForm>();
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    reset: resetEdit,
+  } = useForm<SchoolForm>();
+
+  const onCreateSubmit = async (data: SchoolForm) => {
+    try {
+      await addSchool({
+        name: data.name,
+        cityId: data.cityId || undefined,
+      }).unwrap();
+      toast.success("School created successfully");
+      resetNew();
+      setIsAddingNew(false);
+    } catch {
+      toast.error("Failed to create school");
     }
   };
 
-  // Handle job operations
-  const handleRetryJob = async (id: string) => {
+  const onUpdateSubmit = async (data: SchoolForm) => {
+    if (!editingId) return;
+
+    try {
+      await updateSchool({
+        id: editingId,
+        data: {
+          name: data.name,
+          cityId: data.cityId || undefined,
+        },
+      }).unwrap();
+      toast.success("School updated successfully");
+      setEditingId(null);
+      resetEdit();
+    } catch {
+      toast.error("Failed to update school");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this school?")) return;
+
+    try {
+      await deleteSchool(id).unwrap();
+      toast.success("School deleted successfully");
+    } catch {
+      toast.error("Failed to delete school");
+    }
+  };
+
+  const startEdit = (school: School) => {
+    setEditingId(school.id);
+    resetEdit({
+      name: school.name,
+      cityId: school.cityId || undefined,
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    resetEdit();
+  };
+
+  if (schoolsLoading) {
+    return <div>Loading schools...</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Schools Management</CardTitle>
+            <CardDescription>
+              Manage schools and their city associations
+            </CardDescription>
+          </div>
+          <Button onClick={() => setIsAddingNew(true)} disabled={isAddingNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add School
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {isAddingNew && (
+            <form
+              onSubmit={handleSubmitNew(onCreateSubmit)}
+              className="border rounded-lg p-4 space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-school-name">School Name</Label>
+                  <Input
+                    id="new-school-name"
+                    placeholder="School name"
+                    {...registerNew("name", {
+                      required: "School name is required",
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-school-city">City</Label>
+                  <select
+                    id="new-school-city"
+                    {...registerNew("cityId")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select a city (optional)</option>
+                    {cities?.map((city) => (
+                      <option key={city.id} value={city.id}>
+                        {city.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit" size="sm" disabled={creating}>
+                  {creating ? "Creating..." : "Save"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingNew(false);
+                    resetNew();
+                  }}
+                  disabled={creating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+
+          <div className="space-y-2">
+            {schools?.map((school: School) => (
+              <div key={school.id} className="border rounded-lg p-4">
+                {editingId === school.id ? (
+                  <form
+                    onSubmit={handleSubmitEdit(onUpdateSubmit)}
+                    className="space-y-4"
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`edit-school-name-${school.id}`}>
+                          School Name
+                        </Label>
+                        <Input
+                          id={`edit-school-name-${school.id}`}
+                          {...registerEdit("name", {
+                            required: "School name is required",
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`edit-school-city-${school.id}`}>
+                          City
+                        </Label>
+                        <select
+                          id={`edit-school-city-${school.id}`}
+                          {...registerEdit("cityId")}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select a city (optional)</option>
+                          {cities?.map((city) => (
+                            <option key={city.id} value={city.id}>
+                              {city.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit" size="sm" disabled={updating}>
+                        {updating ? "Saving..." : "Save"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={cancelEdit}
+                        disabled={updating}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">{school.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {school.city
+                          ? `City: ${school.city.name}`
+                          : "No city assigned"}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => startEdit(school)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(school.id)}
+                        disabled={deleting}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            {schools?.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No schools found. Add your first school above.
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Notifications Management Component
+function NotificationsTab() {
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const { data: notifications, isLoading: notificationsLoading } =
+    useGetNotificationsQuery();
+  const [addNotification, { isLoading: creating }] =
+    useAddNotificationMutation();
+  const [updateNotification, { isLoading: updating }] =
+    useUpdateNotificationMutation();
+  const [deleteNotification, { isLoading: deleting }] =
+    useDeleteNotificationMutation();
+
+  const {
+    register: registerNew,
+    handleSubmit: handleSubmitNew,
+    reset: resetNew,
+  } = useForm<NotificationForm>();
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    reset: resetEdit,
+  } = useForm<NotificationForm>();
+
+  const onCreateSubmit = async (data: NotificationForm) => {
+    try {
+      await addNotification(data).unwrap();
+      toast.success("Notification created successfully");
+      resetNew();
+      setIsAddingNew(false);
+    } catch {
+      toast.error("Failed to create notification");
+    }
+  };
+
+  const onUpdateSubmit = async (data: NotificationForm) => {
+    if (!editingId) return;
+
+    try {
+      await updateNotification({ id: editingId, data }).unwrap();
+      toast.success("Notification updated successfully");
+      setEditingId(null);
+      resetEdit();
+    } catch {
+      toast.error("Failed to update notification");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this notification?")) return;
+
+    try {
+      await deleteNotification(id).unwrap();
+      toast.success("Notification deleted successfully");
+    } catch {
+      toast.error("Failed to delete notification");
+    }
+  };
+
+  const startEdit = (notification: Notification) => {
+    setEditingId(notification.id);
+    resetEdit({
+      title: notification.title,
+      content: notification.content || "",
+      type: notification.type || "",
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    resetEdit();
+  };
+
+  if (notificationsLoading) {
+    return <div>Loading notifications...</div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Notifications Management</CardTitle>
+            <CardDescription>Manage system notifications</CardDescription>
+          </div>
+          <Button onClick={() => setIsAddingNew(true)} disabled={isAddingNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Notification
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {isAddingNew && (
+            <form
+              onSubmit={handleSubmitNew(onCreateSubmit)}
+              className="border rounded-lg p-4 space-y-4"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="new-notification-title">Title</Label>
+                <Input
+                  id="new-notification-title"
+                  placeholder="Notification title"
+                  {...registerNew("title", { required: "Title is required" })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-notification-content">Content</Label>
+                <textarea
+                  id="new-notification-content"
+                  placeholder="Notification content"
+                  {...registerNew("content")}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-notification-type">Type</Label>
+                <select
+                  id="new-notification-type"
+                  {...registerNew("type")}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Select type (optional)</option>
+                  <option value="info">Info</option>
+                  <option value="warning">Warning</option>
+                  <option value="error">Error</option>
+                  <option value="success">Success</option>
+                </select>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit" size="sm" disabled={creating}>
+                  {creating ? "Creating..." : "Save"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingNew(false);
+                    resetNew();
+                  }}
+                  disabled={creating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
+
+          <div className="space-y-2">
+            {notifications?.map((notification: Notification) => (
+              <div key={notification.id} className="border rounded-lg p-4">
+                {editingId === notification.id ? (
+                  <form
+                    onSubmit={handleSubmitEdit(onUpdateSubmit)}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor={`edit-notification-title-${notification.id}`}
+                      >
+                        Title
+                      </Label>
+                      <Input
+                        id={`edit-notification-title-${notification.id}`}
+                        {...registerEdit("title", {
+                          required: "Title is required",
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor={`edit-notification-content-${notification.id}`}
+                      >
+                        Content
+                      </Label>
+                      <textarea
+                        id={`edit-notification-content-${notification.id}`}
+                        {...registerEdit("content")}
+                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor={`edit-notification-type-${notification.id}`}
+                      >
+                        Type
+                      </Label>
+                      <select
+                        id={`edit-notification-type-${notification.id}`}
+                        {...registerEdit("type")}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">Select type (optional)</option>
+                        <option value="info">Info</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                        <option value="success">Success</option>
+                      </select>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit" size="sm" disabled={updating}>
+                        {updating ? "Saving..." : "Save"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={cancelEdit}
+                        disabled={updating}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-medium">{notification.title}</h3>
+                      {notification.content && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {notification.content}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        {notification.type && (
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              notification.type === "error"
+                                ? "bg-red-100 text-red-800"
+                                : notification.type === "warning"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : notification.type === "success"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {notification.type}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(
+                            notification.createdAt
+                          ).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => startEdit(notification)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(notification.id)}
+                        disabled={deleting}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            {notifications?.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No notifications found. Add your first notification above.
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Queue Management Component
+function QueueTab() {
+  const { data: queueResponse, isLoading: queueLoading } = useGetQueueQuery();
+  const { data: stats, isLoading: statsLoading } = useGetQueueStatsQuery();
+  const [retryJob, { isLoading: retrying }] = useRetryQueueJobMutation();
+  const [deleteJob, { isLoading: deleting }] = useDeleteQueueJobMutation();
+
+  // Extract jobs and pagination from response
+  const queue = queueResponse?.jobs || [];
+  const pagination = queueResponse?.pagination;
+
+  const handleRetry = async (id: number) => {
     try {
       await retryJob(id).unwrap();
       toast.success("Job retry initiated");
-      refetchJobs();
     } catch {
       toast.error("Failed to retry job");
     }
   };
 
-  const handleDeleteJob = async (id: string) => {
-    if (confirm("Are you sure you want to delete this job?")) {
-      try {
-        await deleteJob(id).unwrap();
-        toast.success("Job deleted successfully");
-        refetchJobs();
-      } catch {
-        toast.error("Failed to delete job");
-      }
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this job?")) return;
+
+    try {
+      await deleteJob(id).unwrap();
+      toast.success("Job deleted successfully");
+    } catch {
+      toast.error("Failed to delete job");
     }
   };
 
-  const handleClearFailedJobs = async () => {
-    if (confirm("Are you sure you want to clear all failed jobs?")) {
-      try {
-        await clearFailedJobs().unwrap();
-        toast.success("Failed jobs cleared successfully");
-        refetchJobs();
-      } catch {
-        toast.error("Failed to clear failed jobs");
-      }
-    }
-  };
+  if (queueLoading || statsLoading) {
+    return <div>Loading queue information...</div>;
+  }
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Background Jobs Queue</CardTitle>
+        <CardDescription>
+          Monitor and manage background job queue
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Queue Stats */}
+          {stats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-yellow-50 p-3 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {stats.pending}
+                </div>
+                <div className="text-sm text-yellow-600">Pending</div>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {stats.processing}
+                </div>
+                <div className="text-sm text-purple-600">Processing</div>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.completed}
+                </div>
+                <div className="text-sm text-green-600">Completed</div>
+              </div>
+              <div className="bg-red-50 p-3 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {stats.failed}
+                </div>
+                <div className="text-sm text-red-600">Failed</div>
+              </div>
+            </div>
+          )}
 
-  const handleRefreshAll = () => {
-    refetchSettings();
-    refetchSocials();
-    refetchCities();
-    refetchSchools();
-    refetchJobs();
-  };
+          {/* Job List */}
+          <div className="space-y-2">
+            {queue?.map((job: QueueJob) => (
+              <div key={job.id} className="border rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          job.status === "failed"
+                            ? "bg-red-100 text-red-800"
+                            : job.status === "processing"
+                            ? "bg-purple-100 text-purple-800"
+                            : job.status === "completed"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {job.status}
+                      </span>
+                      {job.type && (
+                        <span className="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">
+                          {job.type}
+                        </span>
+                      )}
+                    </div>
 
-  const getJobStatusColor = (status: string) => {
-    const colors = {
-      pending: "bg-yellow-100 text-yellow-800",
-      processing: "bg-blue-100 text-blue-800",
-      completed: "bg-green-100 text-green-800",
-      failed: "bg-red-100 text-red-800",
-    };
-    return colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800";
-  };
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <div>ID: {job.id}</div>
+                      <div>
+                        Retries: {job.retriesCount}/{job.maxRetries}
+                      </div>
+                      <div>
+                        Created: {new Date(job.createdAt).toLocaleString()}
+                      </div>
+                      <div>
+                        Updated: {new Date(job.updatedAt).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
 
+                  <div className="flex space-x-2 ml-4">
+                    {job.status === "failed" &&
+                      job.retriesCount < job.maxRetries && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRetry(job.id)}
+                          disabled={retrying}
+                        >
+                          Retry
+                        </Button>
+                      )}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(job.id)}
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {queue?.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No jobs in queue.
+              </div>
+            )}
+          </div>
+
+          {/* Pagination Info */}
+          {pagination && queue.length > 0 && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div>
+                Showing {(pagination.currentPage - 1) * pagination.limit + 1} to{" "}
+                {Math.min(
+                  pagination.currentPage * pagination.limit,
+                  pagination.totalItems
+                )}{" "}
+                of {pagination.totalItems} jobs
+              </div>
+              <div>
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function SystemPage() {
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             System Administration
           </h1>
           <p className="text-muted-foreground">
-            Manage system settings, social links, locations, and background jobs
+            Manage system settings and locations
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefreshAll}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh All
-        </Button>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Site Settings
-          </TabsTrigger>
-          <TabsTrigger value="socials" className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            Social Links
-          </TabsTrigger>
-          <TabsTrigger value="cities" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Cities
-          </TabsTrigger>
-          <TabsTrigger value="schools" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Schools
-          </TabsTrigger>
-          <TabsTrigger value="jobs" className="flex items-center gap-2">
-            <Server className="h-4 w-4" />
-            Background Jobs
-          </TabsTrigger>
+      <Tabs defaultValue="siteinfo" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="siteinfo">Site Information</TabsTrigger>
+          <TabsTrigger value="cities">Cities</TabsTrigger>
+          <TabsTrigger value="schools">Schools</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="queue">Background Jobs</TabsTrigger>
         </TabsList>
 
-        {/* Site Settings Tab */}
-        <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Site Configuration</CardTitle>
-                  <CardDescription>
-                    Manage key-value configuration settings
-                  </CardDescription>
-                </div>
-                <Dialog
-                  open={settingDialog.isOpen}
-                  onOpenChange={(open) => {
-                    setSettingDialog({ isOpen: open, isEditing: false });
-                    if (!open) setSettingForm({ key: "", value: "" });
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Setting
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>
-                        {settingDialog.isEditing ? "Edit" : "Add"} Site Setting
-                      </DialogTitle>
-                      <DialogDescription>
-                        {settingDialog.isEditing
-                          ? "Update the setting value"
-                          : "Add a new site configuration setting"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="key">Setting Key</Label>
-                        <Input
-                          id="key"
-                          value={settingForm.key}
-                          onChange={(e) =>
-                            setSettingForm({
-                              ...settingForm,
-                              key: e.target.value,
-                            })
-                          }
-                          disabled={settingDialog.isEditing}
-                          placeholder="e.g., site_name, contact_email"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="value">Setting Value</Label>
-                        <Textarea
-                          id="value"
-                          value={settingForm.value}
-                          onChange={(e) =>
-                            setSettingForm({
-                              ...settingForm,
-                              value: e.target.value,
-                            })
-                          }
-                          placeholder="Setting value..."
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setSettingDialog({ isOpen: false, isEditing: false })
-                        }
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveSetting}
-                        disabled={
-                          isCreatingSetting ||
-                          isUpdatingSetting ||
-                          !settingForm.key ||
-                          !settingForm.value
-                        }
-                      >
-                        {(isCreatingSetting || isUpdatingSetting) && (
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        {settingDialog.isEditing ? "Update" : "Create"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSettings ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Key</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Updated</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {siteSettings?.map((setting) => (
-                      <TableRow key={setting.key}>
-                        <TableCell className="font-medium">
-                          {setting.key}
-                        </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {setting.value}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(setting.updatedAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSettingDialog({
-                                  isOpen: true,
-                                  isEditing: true,
-                                  setting,
-                                });
-                                setSettingForm({
-                                  key: setting.key,
-                                  value: setting.value,
-                                });
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteSetting(setting.key)}
-                              disabled={isDeletingSetting}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )) ?? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-12">
-                          <Settings className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <p className="mt-4 text-sm text-muted-foreground">
-                            No settings configured yet
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="siteinfo" className="space-y-4">
+          <SiteInfoTab />
         </TabsContent>
 
-        {/* Social Links Tab */}
-        <TabsContent value="socials" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Social Media Links</CardTitle>
-                  <CardDescription>
-                    Manage social media platform links
-                  </CardDescription>
-                </div>
-                <Dialog
-                  open={socialDialog.isOpen}
-                  onOpenChange={(open) => {
-                    setSocialDialog({ isOpen: open, isEditing: false });
-                    if (!open) setSocialForm({ platform: "", url: "" });
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Social Link
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>
-                        {socialDialog.isEditing ? "Edit" : "Add"} Social Link
-                      </DialogTitle>
-                      <DialogDescription>
-                        {socialDialog.isEditing
-                          ? "Update the social media link"
-                          : "Add a new social media platform link"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="platform">Platform</Label>
-                        <Input
-                          id="platform"
-                          value={socialForm.platform}
-                          onChange={(e) =>
-                            setSocialForm({
-                              ...socialForm,
-                              platform: e.target.value,
-                            })
-                          }
-                          placeholder="e.g., Facebook, YouTube, Instagram"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="url">URL</Label>
-                        <Input
-                          id="url"
-                          type="url"
-                          value={socialForm.url}
-                          onChange={(e) =>
-                            setSocialForm({
-                              ...socialForm,
-                              url: e.target.value,
-                            })
-                          }
-                          placeholder="https://..."
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setSocialDialog({ isOpen: false, isEditing: false })
-                        }
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveSocial}
-                        disabled={
-                          isCreatingSocial ||
-                          isUpdatingSocial ||
-                          !socialForm.platform ||
-                          !socialForm.url
-                        }
-                      >
-                        {(isCreatingSocial || isUpdatingSocial) && (
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        {socialDialog.isEditing ? "Update" : "Create"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSocials ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Platform</TableHead>
-                      <TableHead>URL</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {socialLinks?.map((social) => (
-                      <TableRow key={social.id}>
-                        <TableCell className="font-medium">
-                          {social.platform}
-                        </TableCell>
-                        <TableCell>
-                          <a
-                            href={social.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline truncate max-w-xs block"
-                          >
-                            {social.url}
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          {new Date(social.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSocialDialog({
-                                  isOpen: true,
-                                  isEditing: true,
-                                  social,
-                                });
-                                setSocialForm({
-                                  platform: social.platform,
-                                  url: social.url,
-                                });
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteSocial(social.id)}
-                              disabled={isDeletingSocial}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )) ?? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-12">
-                          <Globe className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <p className="mt-4 text-sm text-muted-foreground">
-                            No social links configured yet
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Cities & Schools Tabs */}
         <TabsContent value="cities" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Cities Management</CardTitle>
-                  <CardDescription>Manage list of cities</CardDescription>
-                </div>
-                <Dialog
-                  open={cityDialog.isOpen}
-                  onOpenChange={(open) => {
-                    setCityDialog({ isOpen: open, isEditing: false });
-                    if (!open) setCityForm({ name: "" });
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add City
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>
-                        {cityDialog.isEditing ? "Edit" : "Add"} City
-                      </DialogTitle>
-                      <DialogDescription>
-                        {cityDialog.isEditing
-                          ? "Update the city name"
-                          : "Add a new city to the system"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="cityName">City Name</Label>
-                        <Input
-                          id="cityName"
-                          value={cityForm.name}
-                          onChange={(e) =>
-                            setCityForm({ name: e.target.value })
-                          }
-                          placeholder="City name..."
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setCityDialog({ isOpen: false, isEditing: false })
-                        }
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveCity}
-                        disabled={
-                          isCreatingCity || isUpdatingCity || !cityForm.name
-                        }
-                      >
-                        {(isCreatingCity || isUpdatingCity) && (
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        {cityDialog.isEditing ? "Update" : "Create"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingCities ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cities?.map((city) => (
-                      <TableRow key={city.id}>
-                        <TableCell className="font-medium">
-                          {city.name}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(city.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setCityDialog({
-                                  isOpen: true,
-                                  isEditing: true,
-                                  city,
-                                });
-                                setCityForm({ name: city.name });
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteCity(city.id)}
-                              disabled={isDeletingCity}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )) ?? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center py-12">
-                          <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <p className="mt-4 text-sm text-muted-foreground">
-                            No cities configured yet
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <CitiesTab />
         </TabsContent>
 
         <TabsContent value="schools" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Schools Management</CardTitle>
-                  <CardDescription>
-                    Manage list of schools by city
-                  </CardDescription>
-                </div>
-                <Dialog
-                  open={schoolDialog.isOpen}
-                  onOpenChange={(open) => {
-                    setSchoolDialog({ isOpen: open, isEditing: false });
-                    if (!open) setSchoolForm({ name: "", cityId: "" });
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add School
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>
-                        {schoolDialog.isEditing ? "Edit" : "Add"} School
-                      </DialogTitle>
-                      <DialogDescription>
-                        {schoolDialog.isEditing
-                          ? "Update the school information"
-                          : "Add a new school to the system"}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="schoolName">School Name</Label>
-                        <Input
-                          id="schoolName"
-                          value={schoolForm.name}
-                          onChange={(e) =>
-                            setSchoolForm({
-                              ...schoolForm,
-                              name: e.target.value,
-                            })
-                          }
-                          placeholder="School name..."
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="citySelect">City</Label>
-                        <Select
-                          value={schoolForm.cityId}
-                          onValueChange={(value) =>
-                            setSchoolForm({ ...schoolForm, cityId: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a city" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {cities?.map((city) => (
-                              <SelectItem key={city.id} value={city.id}>
-                                {city.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setSchoolDialog({ isOpen: false, isEditing: false })
-                        }
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveSchool}
-                        disabled={
-                          isCreatingSchool ||
-                          isUpdatingSchool ||
-                          !schoolForm.name ||
-                          !schoolForm.cityId
-                        }
-                      >
-                        {(isCreatingSchool || isUpdatingSchool) && (
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        {schoolDialog.isEditing ? "Update" : "Create"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSchools ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {schools?.map((school) => (
-                      <TableRow key={school.id}>
-                        <TableCell className="font-medium">
-                          {school.name}
-                        </TableCell>
-                        <TableCell>
-                          {school.city?.name || "Unknown City"}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(school.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSchoolDialog({
-                                  isOpen: true,
-                                  isEditing: true,
-                                  school,
-                                });
-                                setSchoolForm({
-                                  name: school.name,
-                                  cityId: school.cityId,
-                                });
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteSchool(school.id)}
-                              disabled={isDeletingSchool}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )) ?? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-12">
-                          <Building className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <p className="mt-4 text-sm text-muted-foreground">
-                            No schools configured yet
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <SchoolsTab />
         </TabsContent>
 
-        {/* Background Jobs Tab */}
-        <TabsContent value="jobs" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Background Jobs</CardTitle>
-                  <CardDescription>
-                    Monitor and manage background job queue
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={refetchJobs}
-                    disabled={isLoadingJobs}
-                  >
-                    <RefreshCw
-                      className={`mr-2 h-4 w-4 ${
-                        isLoadingJobs ? "animate-spin" : ""
-                      }`}
-                    />
-                    Refresh
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleClearFailedJobs}
-                    disabled={isClearingJobs}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    Clear Failed
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingJobs ? (
-                <div className="flex items-center justify-center py-12">
-                  <RefreshCw className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Attempts</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Processed</TableHead>
-                      <TableHead className="w-[120px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {jobsData?.data?.map((job) => (
-                      <TableRow key={job.id}>
-                        <TableCell className="font-medium">
-                          {job.type}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getJobStatusColor(job.status)}>
-                            {job.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {job.attempts}/{job.maxAttempts}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(job.createdAt).toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          {job.processedAt
-                            ? new Date(job.processedAt).toLocaleString()
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            {(job.status === "failed" ||
-                              job.status === "pending") && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRetryJob(job.id)}
-                                disabled={isRetryingJob}
-                                title="Retry Job"
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteJob(job.id)}
-                              disabled={isDeletingJob}
-                              title="Delete Job"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )) ?? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-12">
-                          <Server className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <p className="mt-4 text-sm text-muted-foreground">
-                            No background jobs found
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="notifications" className="space-y-4">
+          <NotificationsTab />
+        </TabsContent>
+
+        <TabsContent value="queue" className="space-y-4">
+          <QueueTab />
         </TabsContent>
       </Tabs>
     </div>

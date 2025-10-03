@@ -1,327 +1,337 @@
-import { baseApi } from './baseApi';
+﻿import { baseApi, ApiResponse } from "./baseApi";
 
+// System interfaces theo BE model thực tế
 export interface SiteInfo {
-  id: string;
-  key: string;
-  value: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Social {
-  id: string;
-  platform: string;
-  url: string;
-  createdAt: string;
-  updatedAt: string;
+  id: number | null;
+  siteName: string;
+  companyName: string;
+  email: string;
+  taxCode: string;
+  phone: string;
+  address: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface City {
-  id: string;
+  id: number;
   name: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface School {
-  id: string;
+  id: number;
   name: string;
-  cityId: string;
+  cityId: number | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
   city?: City;
-  createdAt: string;
-  updatedAt: string;
 }
 
-export interface BackgroundJob {
-  id: string;
-  type: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  data: Record<string, unknown>;
-  result?: Record<string, unknown>;
-  error?: string;
-  attempts: number;
-  maxAttempts: number;
-  delay: number;
-  createdAt: string;
-  updatedAt: string;
-  processedAt?: string;
-  failedAt?: string;
-}
-
-export interface NotificationTemplate {
-  id: string;
+export interface Notification {
+  id: number;
   title: string;
-  content: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  targetUsers: 'all' | 'specific' | 'role';
-  targetData?: string;
-  scheduled?: boolean;
-  scheduledAt?: string;
+  content?: string;
+  type?: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string;
+}
+
+export interface QueueJob {
+  id: number;
+  status: string;
+  type?: string;
+  payload?: string;
+  maxRetries: number;
+  retriesCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface QueueStats {
+  pending: number;
+  processing: number;
+  completed: number;
+  failed: number;
+}
+
+export interface QueueResponse {
+  jobs: QueueJob[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    limit: number;
+  };
+}
+
+export interface CreateCityData {
+  name: string;
+}
+
+export interface UpdateCityData {
+  name?: string;
+}
+
+export interface CreateSchoolData {
+  name: string;
+  cityId?: number;
+}
+
+export interface UpdateSchoolData {
+  name?: string;
+  cityId?: number;
+}
+
+export interface CreateNotificationData {
+  title: string;
+  content?: string;
+  type?: string;
+}
+
+export interface UpdateNotificationData {
+  title?: string;
+  content?: string;
+  type?: string;
+}
+
+export interface UpdateSiteInfoData {
+  siteName?: string;
+  companyName?: string;
+  email?: string;
+  taxCode?: string;
+  phone?: string;
+  address?: string;
 }
 
 export const systemApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // Site Settings Management
-    getSiteSettings: builder.query<SiteInfo[], void>({
-      query: () => '/system/settings',
-      providesTags: ['SiteInfo'],
+    // Site Info endpoints
+    getSiteInfo: builder.query<SiteInfo, void>({
+      query: () => "/system/site-info",
+      transformResponse: (response: ApiResponse<SiteInfo>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to get site info');
+        }
+        return response.data;
+      },
+      providesTags: ["SiteInfo"],
     }),
 
-    getSiteSetting: builder.query<SiteInfo, string>({
-      query: (key) => `/system/settings/${key}`,
-      providesTags: (result, error, key) => [
-        { type: 'SiteInfo', id: key },
-      ],
-    }),
-
-    updateSiteSetting: builder.mutation<SiteInfo, { key: string; value: string }>({
-      query: ({ key, value }) => ({
-        url: `/system/settings/${key}`,
-        method: 'PUT',
-        body: { value },
-      }),
-      invalidatesTags: (result, error, { key }) => [
-        'SiteInfo',
-        { type: 'SiteInfo', id: key },
-      ],
-    }),
-
-    createSiteSetting: builder.mutation<SiteInfo, { key: string; value: string }>({
-      query: ({ key, value }) => ({
-        url: '/system/settings',
-        method: 'POST',
-        body: { key, value },
-      }),
-      invalidatesTags: ['SiteInfo'],
-    }),
-
-    deleteSiteSetting: builder.mutation<void, string>({
-      query: (key) => ({
-        url: `/system/settings/${key}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['SiteInfo'],
-    }),
-
-    // Social Links Management
-    getSocialLinks: builder.query<Social[], void>({
-      query: () => '/system/socials',
-      providesTags: ['Social'],
-    }),
-
-    createSocialLink: builder.mutation<Social, { platform: string; url: string }>({
+    updateSiteInfo: builder.mutation<SiteInfo, UpdateSiteInfoData>({
       query: (data) => ({
-        url: '/system/socials',
-        method: 'POST',
+        url: "/system/site-info",
+        method: "PUT",
         body: data,
       }),
-      invalidatesTags: ['Social'],
+      transformResponse: (response: ApiResponse<SiteInfo>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update site info');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["SiteInfo"],
     }),
 
-    updateSocialLink: builder.mutation<Social, { id: string; platform: string; url: string }>({
-      query: ({ id, ...data }) => ({
-        url: `/system/socials/${id}`,
-        method: 'PUT',
-        body: data,
-      }),
-      invalidatesTags: ['Social'],
-    }),
-
-    deleteSocialLink: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/system/socials/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Social'],
-    }),
-
-    // Cities Management
+    // Cities endpoints
     getCities: builder.query<City[], void>({
-      query: () => '/system/cities',
-      providesTags: ['City'],
+      query: () => "/system/cities",
+      transformResponse: (response: ApiResponse<City[]>) => {
+        return response.data || [];
+      },
+      providesTags: ["City"],
     }),
 
-    createCity: builder.mutation<City, { name: string }>({
+    addCity: builder.mutation<City, CreateCityData>({
       query: (data) => ({
-        url: '/system/cities',
-        method: 'POST',
+        url: "/system/cities",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['City'],
+      transformResponse: (response: ApiResponse<City>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to create city');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["City"],
     }),
 
-    updateCity: builder.mutation<City, { id: string; name: string }>({
-      query: ({ id, ...data }) => ({
+    updateCity: builder.mutation<City, { id: number; data: UpdateCityData }>({
+      query: ({ id, data }) => ({
         url: `/system/cities/${id}`,
-        method: 'PUT',
+        method: "PUT",
         body: data,
       }),
-      invalidatesTags: ['City'],
+      transformResponse: (response: ApiResponse<City>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update city');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["City"],
     }),
 
-    deleteCity: builder.mutation<void, string>({
+    deleteCity: builder.mutation<void, number>({
       query: (id) => ({
         url: `/system/cities/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['City'],
+      invalidatesTags: ["City"],
     }),
 
-    // Schools Management
-    getSchools: builder.query<School[], { cityId?: string }>({
-      query: ({ cityId }) => ({
-        url: '/system/schools',
-        params: { cityId },
-      }),
-      providesTags: ['School'],
+    // Schools endpoints
+    getSchools: builder.query<School[], void>({
+      query: () => "/system/schools",
+      transformResponse: (response: ApiResponse<School[]>) => {
+        return response.data || [];
+      },
+      providesTags: ["School"],
     }),
 
-    createSchool: builder.mutation<School, { name: string; cityId: string }>({
+    addSchool: builder.mutation<School, CreateSchoolData>({
       query: (data) => ({
-        url: '/system/schools',
-        method: 'POST',
+        url: "/system/schools",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['School'],
+      transformResponse: (response: ApiResponse<School>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to create school');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["School"],
     }),
 
-    updateSchool: builder.mutation<School, { id: string; name: string; cityId: string }>({
-      query: ({ id, ...data }) => ({
+    updateSchool: builder.mutation<School, { id: number; data: UpdateSchoolData }>({
+      query: ({ id, data }) => ({
         url: `/system/schools/${id}`,
-        method: 'PUT',
+        method: "PUT",
         body: data,
       }),
-      invalidatesTags: ['School'],
+      transformResponse: (response: ApiResponse<School>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update school');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["School"],
     }),
 
-    deleteSchool: builder.mutation<void, string>({
+    deleteSchool: builder.mutation<void, number>({
       query: (id) => ({
         url: `/system/schools/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['School'],
+      invalidatesTags: ["School"],
     }),
 
-    // Background Jobs Management
-    getBackgroundJobs: builder.query<{
-      data: BackgroundJob[];
-      total: number;
-      page: number;
-      limit: number;
-    }, {
-      page?: number;
-      limit?: number;
-      status?: string;
-      type?: string;
-    }>({
-      query: ({ page = 1, limit = 20, status, type }) => ({
-        url: '/system/jobs',
-        params: { page, limit, status, type },
-      }),
-      providesTags: ['Job'],
+    // Notifications endpoints
+    getNotifications: builder.query<Notification[], void>({
+      query: () => "/system/notifications",
+      transformResponse: (response: ApiResponse<Notification[]>) => {
+        return response.data || [];
+      },
+      providesTags: ["Notification"],
     }),
 
-    retryBackgroundJob: builder.mutation<BackgroundJob, string>({
-      query: (id) => ({
-        url: `/system/jobs/${id}/retry`,
-        method: 'POST',
-      }),
-      invalidatesTags: ['Job'],
-    }),
-
-    deleteBackgroundJob: builder.mutation<void, string>({
-      query: (id) => ({
-        url: `/system/jobs/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Job'],
-    }),
-
-    clearFailedJobs: builder.mutation<void, void>({
-      query: () => ({
-        url: '/system/jobs/clear-failed',
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Job'],
-    }),
-
-    // Notification Management
-    getNotificationTemplates: builder.query<NotificationTemplate[], void>({
-      query: () => '/system/notifications/templates',
-      providesTags: ['Notification'],
-    }),
-
-    createNotificationTemplate: builder.mutation<NotificationTemplate, Omit<NotificationTemplate, 'id' | 'createdAt' | 'updatedAt'>>({
+    addNotification: builder.mutation<Notification, CreateNotificationData>({
       query: (data) => ({
-        url: '/system/notifications/templates',
-        method: 'POST',
+        url: "/system/notifications",
+        method: "POST",
         body: data,
       }),
-      invalidatesTags: ['Notification'],
+      transformResponse: (response: ApiResponse<Notification>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to create notification');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["Notification"],
     }),
 
-    updateNotificationTemplate: builder.mutation<NotificationTemplate, { id: string } & Partial<NotificationTemplate>>({
-      query: ({ id, ...data }) => ({
-        url: `/system/notifications/templates/${id}`,
-        method: 'PUT',
+    updateNotification: builder.mutation<Notification, { id: number; data: UpdateNotificationData }>({
+      query: ({ id, data }) => ({
+        url: `/system/notifications/${id}`,
+        method: "PUT",
         body: data,
       }),
-      invalidatesTags: ['Notification'],
+      transformResponse: (response: ApiResponse<Notification>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to update notification');
+        }
+        return response.data;
+      },
+      invalidatesTags: ["Notification"],
     }),
 
-    deleteNotificationTemplate: builder.mutation<void, string>({
+    deleteNotification: builder.mutation<void, number>({
       query: (id) => ({
-        url: `/system/notifications/templates/${id}`,
-        method: 'DELETE',
+        url: `/system/notifications/${id}`,
+        method: "DELETE",
       }),
-      invalidatesTags: ['Notification'],
+      invalidatesTags: ["Notification"],
     }),
 
-    sendNotification: builder.mutation<void, {
-      templateId?: string;
-      title: string;
-      content: string;
-      type: string;
-      targetUsers: string;
-      targetData?: string;
-      scheduledAt?: string;
-    }>({
-      query: (data) => ({
-        url: '/system/notifications/send',
-        method: 'POST',
-        body: data,
+    // Queue endpoints
+    getQueue: builder.query<QueueResponse, void>({
+      query: () => "/system/queue",
+      transformResponse: (response: ApiResponse<QueueResponse>) => {
+        return response.data || { jobs: [], pagination: { currentPage: 1, totalPages: 0, totalItems: 0, limit: 20 } };
+      },
+      providesTags: ["Queue"],
+    }),
+
+    getQueueStats: builder.query<QueueStats, void>({
+      query: () => "/system/queue/stats",
+      transformResponse: (response: ApiResponse<QueueStats>) => {
+        if (!response.data) {
+          throw new Error(response.message || 'Failed to get queue stats');
+        }
+        return response.data;
+      },
+      providesTags: ["Queue"],
+    }),
+
+    retryQueueJob: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/system/queue/${id}/retry`,
+        method: "POST",
       }),
+      invalidatesTags: ["Queue"],
+    }),
+
+    deleteQueueJob: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/system/queue/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Queue"],
     }),
   }),
 });
 
 export const {
-  useGetSiteSettingsQuery,
-  useGetSiteSettingQuery,
-  useUpdateSiteSettingMutation,
-  useCreateSiteSettingMutation,
-  useDeleteSiteSettingMutation,
-  useGetSocialLinksQuery,
-  useCreateSocialLinkMutation,
-  useUpdateSocialLinkMutation,
-  useDeleteSocialLinkMutation,
+  useGetSiteInfoQuery,
+  useUpdateSiteInfoMutation,
   useGetCitiesQuery,
-  useCreateCityMutation,
+  useAddCityMutation,
   useUpdateCityMutation,
   useDeleteCityMutation,
   useGetSchoolsQuery,
-  useCreateSchoolMutation,
+  useAddSchoolMutation,
   useUpdateSchoolMutation,
   useDeleteSchoolMutation,
-  useGetBackgroundJobsQuery,
-  useRetryBackgroundJobMutation,
-  useDeleteBackgroundJobMutation,
-  useClearFailedJobsMutation,
-  useGetNotificationTemplatesQuery,
-  useCreateNotificationTemplateMutation,
-  useUpdateNotificationTemplateMutation,
-  useDeleteNotificationTemplateMutation,
-  useSendNotificationMutation,
+  useGetNotificationsQuery,
+  useAddNotificationMutation,
+  useUpdateNotificationMutation,
+  useDeleteNotificationMutation,
+  useGetQueueQuery,
+  useGetQueueStatsQuery,
+  useRetryQueueJobMutation,
+  useDeleteQueueJobMutation,
 } = systemApi;

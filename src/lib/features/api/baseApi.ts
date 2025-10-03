@@ -29,7 +29,8 @@ export const baseApi = createApi({
     'City',
     'School',
     'Social',
-    'Job'
+    'Job',
+    'Queue'
   ],
   endpoints: () => ({}),
 });
