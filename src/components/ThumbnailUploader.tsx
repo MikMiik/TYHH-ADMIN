@@ -20,6 +20,7 @@ interface ThumbnailUploaderProps {
   className?: string;
   uploadFolder?: string;
   title?: string;
+  fileName?: string;
 }
 
 const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
@@ -29,6 +30,7 @@ const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
   className = "",
   uploadFolder = "course-thumbnails",
   title = "Thumbnail",
+  fileName = "thumbnails",
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -57,9 +59,9 @@ const ThumbnailUploader: React.FC<ThumbnailUploaderProps> = ({
 
     // Upload file
     uploadFile(file, {
-      fileName: `thumbnail_${Date.now()}.${file.name.split(".").pop()}`,
+      fileName: `${fileName}_${Date.now()}.${file.name.split(".").pop()}`,
       folder: `/${uploadFolder}`,
-      tags: ["thumbnail", uploadFolder],
+      tags: [`${fileName}`, uploadFolder],
     });
   };
 

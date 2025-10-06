@@ -10,11 +10,10 @@ import {
   User2,
   ChevronUp,
   ChevronDown,
-  Send,
-  LifeBuoy,
   LogOut,
   User,
   TableOfContents,
+  Atom,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,7 +29,6 @@ import {
   SidebarSeparator,
 } from "./ui/sidebar";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import {
   DropdownMenu,
@@ -155,7 +153,7 @@ const AppSidebar = () => {
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActivePath("/")}>
               <Link href="/">
-                <Image src="/vercel.svg" alt="logo" width={20} height={20} />
+                <Atom />
                 <span>Admin</span>
               </Link>
             </SidebarMenuButton>

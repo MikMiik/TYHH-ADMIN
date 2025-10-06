@@ -81,7 +81,10 @@ const Navbar = () => {
             <DropdownMenuTrigger>
               <Avatar>
                 <AvatarImage
-                  src={user.avatar || "https://github.com/shadcn.png"}
+                  src={
+                    `${process.env.NEXT_PUBLIC_IK_URL_ENDPOINT}${user.avatar}` ||
+                    "https://github.com/shadcn.png"
+                  }
                 />
                 <AvatarFallback>{getUserInitials()}</AvatarFallback>
               </Avatar>

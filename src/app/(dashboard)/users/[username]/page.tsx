@@ -41,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import ThumbnailUploader from "@/components/ThumbnailUploader";
 import {
   useGetUserByUsernameQuery,
   useUpdateUserMutation,
@@ -78,6 +79,7 @@ export default function UserDetailPage() {
     city: "",
     school: "",
     facebook: "",
+    avatar: "",
   });
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
@@ -98,6 +100,7 @@ export default function UserDetailPage() {
     data: user,
     isLoading: isLoadingUser,
     error: userError,
+    refetch: refetchUser,
   } = useGetUserByUsernameQuery(username);
 
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
@@ -125,6 +128,7 @@ export default function UserDetailPage() {
         city: user.city || "",
         school: user.school || "",
         facebook: user.facebook || "",
+        avatar: user.avatar || "",
       });
       // Clear validation errors when loading new user data
       setValidationErrors({});
@@ -166,6 +170,7 @@ export default function UserDetailPage() {
         city: formData.city?.trim() || undefined,
         school: formData.school?.trim() || undefined,
         facebook: formData.facebook?.trim() || undefined,
+        avatar: formData.avatar?.trim() || undefined,
         // Handle password validation based on mode
         password: passwordMode === "change" ? formData.password : undefined,
         confirmPassword:
@@ -189,6 +194,51 @@ export default function UserDetailPage() {
     }
   };
 
+  // Helper function to extract relative path from ImageKit URL
+  const extractImageKitPath = (url: string): string => {
+    try {
+      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
+      const urlObj = new URL(url);
+      // Extract path and remove leading slash
+      const path = urlObj.pathname.substring(1);
+      // Remove the ImageKit ID prefix if it exists
+      const pathParts = path.split("/");
+      if (pathParts.length > 1) {
+        // Skip the first part (ImageKit ID) and join the rest
+        return pathParts.slice(1).join("/");
+      }
+      return path;
+    } catch (error) {
+      console.error("Error extracting ImageKit path:", error);
+      // Fallback: return the original URL if parsing fails
+      return url;
+    }
+  };
+
+  // Function to save only avatar after upload
+  const handleAvatarSave = async (avatarUrl: string) => {
+    try {
+      if (!user?.id) {
+        throw new Error("User ID not available");
+      }
+
+      // Extract relative path from ImageKit URL
+      const relativePath = extractImageKitPath(avatarUrl);
+
+      await updateUser({
+        id: user.id,
+        data: { avatar: relativePath },
+      }).unwrap();
+
+      // Refetch user data to get updated information
+      await refetchUser();
+
+      toast.success("Avatar updated successfully");
+    } catch {
+      toast.error("Failed to save avatar");
+    }
+  };
+
   const handleSave = async () => {
     try {
       // Clear backend error
@@ -208,6 +258,9 @@ export default function UserDetailPage() {
           username: formData.username,
           role: formData.role,
           activeKey: formData.activeKey,
+          avatar: formData.avatar
+            ? extractImageKitPath(formData.avatar)
+            : undefined, // Extract relative path
         };
 
       // Only include password if changing
@@ -242,6 +295,9 @@ export default function UserDetailPage() {
         password: "",
         confirmPassword: "",
       }));
+
+      // Refetch user data to get updated information including avatar
+      await refetchUser();
 
       // Nếu username thay đổi, điều hướng sang URL mới
       if (prevUsername && prevUsername !== formData.username) {
@@ -380,6 +436,7 @@ export default function UserDetailPage() {
         city: user.city || "",
         school: user.school || "",
         facebook: user.facebook || "",
+        avatar: user.avatar || "",
       });
     }
     setIsEditing(false);
@@ -781,6 +838,30 @@ export default function UserDetailPage() {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
+          {/* Avatar Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Avatar</CardTitle>
+              <CardDescription>User profile picture</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ThumbnailUploader
+                currentThumbnail={formData.avatar}
+                onUploadSuccess={async (url) => {
+                  handleInputChange("avatar", url);
+                  await handleAvatarSave(url);
+                }}
+                onUploadError={(error) => {
+                  toast.error(`Failed to upload avatar: ${error}`);
+                }}
+                uploadFolder="avatars"
+                title="User Avatar"
+                className="w-full"
+                fileName="avatar"
+              />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Account Statistics</CardTitle>

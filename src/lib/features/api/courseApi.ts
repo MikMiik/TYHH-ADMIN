@@ -171,67 +171,6 @@ export const courseApi = baseApi.injectEndpoints({
       invalidatesTags: (result, error, id) => [{ type: 'Course', id }, 'Course'],
     }),
 
-    // Lấy course outlines
-    getCourseOutlines: builder.query<CourseOutline[], number | string>({
-      query: (courseId) => `/courses/${courseId}/outlines`,
-      transformResponse: (response: ApiResponse<CourseOutline[]>) => 
-        response.data || [],
-      providesTags: ['Course'],
-    }),
-
-    // Tạo course outline
-    createCourseOutline: builder.mutation<CourseOutline, { courseId: number | string; title: string }>({
-      query: ({ courseId, title }) => ({
-        url: `/courses/${courseId}/outlines`,
-        method: 'POST',
-        body: { title },
-      }),
-      transformResponse: (response: ApiResponse<CourseOutline>) => {
-        if (!response.data) {
-          throw new Error(response.message || 'Failed to create outline');
-        }
-        return response.data;
-      },
-      invalidatesTags: ['Course'],
-    }),
-
-    // Update course outline
-    updateCourseOutline: builder.mutation<CourseOutline, { id: number | string; title: string }>({
-      query: ({ id, title }) => ({
-        url: `/courses/outlines/${id}`,
-        method: 'PUT',
-        body: { title },
-      }),
-      transformResponse: (response: ApiResponse<CourseOutline>) => {
-        if (!response.data) {
-          throw new Error(response.message || 'Failed to update outline');
-        }
-        return response.data;
-      },
-      invalidatesTags: ['Course'],
-    }),
-
-    // Delete course outline
-    deleteCourseOutline: builder.mutation<{ success: boolean }, number | string>({
-      query: (id) => ({
-        url: `/courses/outlines/${id}`,
-        method: 'DELETE',
-      }),
-      transformResponse: (response: ApiResponse) => ({ success: response.success }),
-      invalidatesTags: ['Course'],
-    }),
-
-    // Reorder course outlines
-    reorderCourseOutlines: builder.mutation<{ success: boolean }, { courseId: number | string; orders: { id: number; order: number }[] }>({
-      query: ({ courseId, orders }) => ({
-        url: `/courses/${courseId}/outlines/reorder`,
-        method: 'PUT',
-        body: { orders },
-      }),
-      transformResponse: (response: ApiResponse) => ({ success: response.success }),
-      invalidatesTags: ['Course'],
-    }),
-
     // Lấy danh sách topics
     getTopics: builder.query<Topic[], void>({
       query: () => '/topics',
@@ -326,11 +265,6 @@ export const {
   useCreateCourseMutation,
   useUpdateCourseMutation,
   useDeleteCourseMutation,
-  useGetCourseOutlinesQuery,
-  useCreateCourseOutlineMutation,
-  useUpdateCourseOutlineMutation,
-  useDeleteCourseOutlineMutation,
-  useReorderCourseOutlinesMutation,
   useGetTopicsQuery,
   useCreateTopicMutation,
   useAssignCourseTopicsMutation,

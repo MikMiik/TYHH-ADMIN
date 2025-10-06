@@ -24,11 +24,11 @@ import {
 import { User as UserType } from "@/lib/types/auth";
 import { format } from "date-fns";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDeleteUserMutation } from "@/lib/features/api/userApi";
 import { toast } from "sonner";
 import { useState } from "react";
+import ImageLazy from "@/components/ImageLazy";
 
 // Actions component for user table
 const UserActions = ({ user }: { user: UserType }) => {
@@ -133,11 +133,9 @@ export const userColumns: ColumnDef<UserType>[] = [
       return (
         <div className="flex items-center space-x-2">
           {user.avatar ? (
-            <Image
+            <ImageLazy
               src={user.avatar}
               alt={user.name}
-              width={32}
-              height={32}
               className="h-8 w-8 rounded-full object-cover"
             />
           ) : (

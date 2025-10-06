@@ -4,16 +4,18 @@ import {
   useGetCourseQuery,
   useDeleteCourseMutation,
   useUpdateCourseMutation,
-  useCreateCourseOutlineMutation,
-  useUpdateCourseOutlineMutation,
-  useDeleteCourseOutlineMutation,
-  useReorderCourseOutlinesMutation,
   useRemoveStudentFromCourseMutation,
   useGetTeachersQuery,
   useGetTopicsQuery,
   useUpdateCourseTeacherMutation,
   useUpdateCourseTopicsMutation,
 } from "@/lib/features/api/courseApi";
+import {
+  useCreateCourseOutlineMutation,
+  useUpdateCourseOutlineMutation,
+  useDeleteCourseOutlineMutation,
+  useReorderCourseOutlinesMutation,
+} from "@/lib/features/api/courseOutlineApi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
@@ -334,7 +336,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     try {
       await reorderCourseOutlines({
         courseId: course.id,
-        orders,
+        data: { orders },
       }).unwrap();
 
       toast.success("Outlines reordered successfully!");
@@ -416,7 +418,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     try {
       await updateCourseOutline({
         id: editingOutline.id,
-        title: editOutlineTitle.trim(),
+        data: { title: editOutlineTitle.trim() },
       }).unwrap();
 
       toast.success("Course outline updated successfully!");

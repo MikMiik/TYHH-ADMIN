@@ -31,6 +31,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import ThumbnailUploader from "@/components/ThumbnailUploader";
 
 import {
   useGetUsersQuery,
@@ -75,6 +77,7 @@ export default function UsersPage() {
     city: "",
     school: "",
     facebook: "",
+    avatar: "",
   });
   type FormErrors = {
     name?: string;
@@ -213,6 +216,7 @@ export default function UsersPage() {
         city: newUser.city || undefined,
         school: newUser.school || undefined,
         facebook: newUser.facebook || undefined,
+        avatar: newUser.avatar || undefined,
       };
       await createUser(userData).unwrap();
       // Reset form and close modal
@@ -227,6 +231,7 @@ export default function UsersPage() {
         city: "",
         school: "",
         facebook: "",
+        avatar: "",
       });
       setFormErrors({});
       setShowAddModal(false);
@@ -261,6 +266,7 @@ export default function UsersPage() {
       city: "",
       school: "",
       facebook: "",
+      avatar: "",
     });
   };
 
@@ -680,6 +686,22 @@ export default function UsersPage() {
                       {formErrors.facebook}
                     </span>
                   )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Avatar</Label>
+                  <ThumbnailUploader
+                    currentThumbnail={newUser.avatar}
+                    onUploadSuccess={(url) => {
+                      setNewUser({ ...newUser, avatar: url });
+                      toast.success("Avatar uploaded successfully");
+                    }}
+                    onUploadError={(error) => {
+                      toast.error(`Failed to upload avatar: ${error}`);
+                    }}
+                    uploadFolder="user-avatars"
+                    title="User Avatar"
+                    className="w-full"
+                  />
                 </div>
                 {serverError && (
                   <div className="mb-2 text-red-600 text-sm font-medium text-center">

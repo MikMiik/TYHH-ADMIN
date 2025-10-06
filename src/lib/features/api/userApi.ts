@@ -29,6 +29,12 @@ interface UpdateUserData {
   role?: 'admin' | 'teacher' | 'user';
   status?: string;
   activeKey?: boolean;
+  phone?: string;
+  yearOfBirth?: number;
+  city?: string;
+  school?: string;
+  facebook?: string;
+  avatar?: string;
 }
 
 export const userApi = baseApi.injectEndpoints({
