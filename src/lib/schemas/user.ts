@@ -40,6 +40,11 @@ export const createUserSchema = z.object({
     .refine((val) => ["admin", "teacher", "user"].includes(val), {
       message: "Vai trò không hợp lệ. Chỉ được chọn: admin, teacher, user.",
     }),
+  
+  roleIds: z
+    .array(z.number())
+    .min(1, "Vui lòng chọn ít nhất một vai trò.")
+    .optional(),
 
   // Optional fields
   phone: z
@@ -95,6 +100,7 @@ export const createUserFormSchema = z.object({
   email: z.string(),
   password: z.string(),
   role: z.enum(["admin", "teacher", "user"]),
+  roleIds: z.array(z.number()).optional(),
   phone: z.string(),
   yearOfBirth: z.string(),
   city: z.string(),
@@ -151,7 +157,13 @@ export const editUserSchema = z
       .enum(["admin", "teacher", "user"])
       .refine((val) => ["admin", "teacher", "user"].includes(val), {
         message: "Vai trò không hợp lệ. Chỉ được chọn: admin, teacher, user.",
-      }),
+      })
+      .optional(),
+
+    roleIds: z
+      .array(z.number())
+      .min(1, "Vui lòng chọn ít nhất một vai trò.")
+      .optional(),
 
     activeKey: z.boolean(),
 
@@ -222,7 +234,8 @@ export const editUserFormSchema = z.object({
   email: z.string(),
   password: z.string(),
   confirmPassword: z.string(),
-  role: z.enum(["admin", "teacher", "user"]),
+  role: z.enum(["admin", "teacher", "user"]).optional(),
+  roleIds: z.array(z.number()).optional(),
   activeKey: z.boolean(),
   phone: z.string(),
   yearOfBirth: z.string(),

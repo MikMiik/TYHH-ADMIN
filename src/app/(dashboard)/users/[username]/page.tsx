@@ -23,13 +23,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -49,6 +42,8 @@ import {
   useSetUserKeyMutation,
   useSendVerificationEmailMutation,
 } from "@/lib/features/api/userApi";
+import { useGetRolesQuery } from "@/lib/features/api/systemApi";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Import validation schema and z for type safety (following .github/development-instructions.md guidelines)
 import { editUserSchema, type EditUserFormData } from "@/lib/schemas/user";
@@ -71,6 +66,7 @@ export default function UserDetailPage() {
     email: "",
     username: "",
     role: "user",
+    roleIds: [],
     activeKey: true,
     password: "",
     confirmPassword: "",
@@ -103,6 +99,8 @@ export default function UserDetailPage() {
     refetch: refetchUser,
   } = useGetUserByUsernameQuery(username);
 
+  const { data: availableRoles = [], isLoading: isLoadingRoles } = useGetRolesQuery();
+
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
   const [setUserKey, { isLoading: isSettingKey }] = useSetUserKeyMutation();
@@ -115,11 +113,15 @@ export default function UserDetailPage() {
   // Populate form when user data is loaded
   useEffect(() => {
     if (user) {
+      // Extract role IDs from the roles array
+      const userRoleIds = user.roles?.map(r => r.id) || [];
+      
       setFormData({
         name: user.name || "",
         email: user.email || "",
         username: user.username || "",
         role: user.role || "user",
+        roleIds: userRoleIds,
         activeKey: user.activeKey ?? true,
         password: "",
         confirmPassword: "",
@@ -138,7 +140,7 @@ export default function UserDetailPage() {
 
   const handleInputChange = (
     field: keyof UserFormData,
-    value: string | boolean
+    value: string | boolean | number[]
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -152,6 +154,20 @@ export default function UserDetailPage() {
         [field]: undefined,
       }));
     }
+  };
+
+  const handleRoleToggle = (roleId: number) => {
+    setFormData((prev) => {
+      const currentRoleIds = prev.roleIds || [];
+      const newRoleIds = currentRoleIds.includes(roleId)
+        ? currentRoleIds.filter(id => id !== roleId)
+        : [...currentRoleIds, roleId];
+      
+      return {
+        ...prev,
+        roleIds: newRoleIds,
+      };
+    });
   };
 
   // Validation function using Zod schema
@@ -175,6 +191,8 @@ export default function UserDetailPage() {
         password: passwordMode === "change" ? formData.password : undefined,
         confirmPassword:
           passwordMode === "change" ? formData.confirmPassword : undefined,
+        // Include roleIds if present
+        roleIds: formData.roleIds && formData.roleIds.length > 0 ? formData.roleIds : undefined,
       };
 
       editUserSchema.parse(dataToValidate);
@@ -228,15 +246,21 @@ export default function UserDetailPage() {
       }
 
       // Prepare update data with proper typing
-      const updateData: Record<string, string | number | boolean | undefined> =
+      const updateData: Record<string, string | number | boolean | number[] | undefined> =
         {
           name: formData.name,
           email: formData.email,
           username: formData.username,
-          role: formData.role,
           activeKey: formData.activeKey,
           avatar: formData.avatar || undefined, // filePath is already relative
         };
+
+      // Send roleIds if available, otherwise fall back to single role
+      if (formData.roleIds && formData.roleIds.length > 0) {
+        updateData.roleIds = formData.roleIds;
+      } else if (formData.role) {
+        updateData.role = formData.role;
+      }
 
       // Only include password if changing
       if (passwordMode === "change" && formData.password) {
@@ -398,11 +422,14 @@ export default function UserDetailPage() {
 
   const handleCancel = () => {
     if (user) {
+      const userRoleIds = user.roles?.map(r => r.id) || [];
+      
       setFormData({
         name: user.name || "",
         email: user.email || "",
         username: user.username || "",
         role: user.role || "user",
+        roleIds: userRoleIds,
         activeKey: user.activeKey ?? true,
         password: "",
         confirmPassword: "",
@@ -618,21 +645,51 @@ export default function UserDetailPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value) => handleInputChange("role", value)}
-                    disabled={!isEditing}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="teacher">Teacher</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Roles</Label>
+                  {!isEditing ? (
+                    <div className="flex flex-wrap gap-2 min-h-[40px] items-center">
+                      {user.roles && user.roles.length > 0 ? (
+                        user.roles.map((role) => (
+                          <Badge key={role.id} variant="secondary" className="text-sm">
+                            {role.displayName}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="outline" className="text-sm">
+                          No roles assigned
+                        </Badge>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2 border rounded-md p-3">
+                      {isLoadingRoles ? (
+                        <p className="text-sm text-muted-foreground">Loading roles...</p>
+                      ) : availableRoles.length > 0 ? (
+                        availableRoles.map((role) => (
+                          <div key={role.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`role-${role.id}`}
+                              checked={formData.roleIds?.includes(role.id) || false}
+                              onCheckedChange={() => handleRoleToggle(role.id)}
+                            />
+                            <Label
+                              htmlFor={`role-${role.id}`}
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {role.displayName}
+                            </Label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No roles available</p>
+                      )}
+                    </div>
+                  )}
+                  {validationErrors.roleIds && (
+                    <p className="text-sm text-destructive">
+                      {validationErrors.roleIds}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>

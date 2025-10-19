@@ -26,6 +26,15 @@ export interface Topic {
   deletedAt?: string;
 }
 
+export interface Role {
+  id: number;
+  name: string;
+  displayName: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Notification {
   id: number;
   title: string;
@@ -117,6 +126,15 @@ export interface UpdateNotificationData {
 
 export const systemApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    // Roles endpoints
+    getRoles: builder.query<Role[], void>({
+      query: () => "/system/roles",
+      transformResponse: (response: ApiResponse<Role[]>) => {
+        return response.data || [];
+      },
+      providesTags: ["Role"],
+    }),
+
     // Socials endpoints
     getSocials: builder.query<Social[], void>({
       query: () => "/system/socials",
@@ -344,6 +362,7 @@ export const systemApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetRolesQuery,
   useGetSocialsQuery,
   useAddSocialMutation,
   useUpdateSocialMutation,
