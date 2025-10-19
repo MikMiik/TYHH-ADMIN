@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { cookies } from "next/headers";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default async function DashboardLayout({
   children,
@@ -13,7 +14,7 @@ export default async function DashboardLayout({
   const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
 
   return (
-    // <ProtectedRoute>
+    <ProtectedRoute>
     <SidebarProvider defaultOpen={defaultOpen}>
       <AppSidebar />
       <main className="w-full">
@@ -22,6 +23,6 @@ export default async function DashboardLayout({
       </main>
       <Toaster />
     </SidebarProvider>
-    // </ProtectedRoute>
+    </ProtectedRoute>
   );
 }

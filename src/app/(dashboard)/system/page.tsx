@@ -15,16 +15,18 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import {
-  useGetSiteInfoQuery,
-  useUpdateSiteInfoMutation,
+  useGetSocialsQuery,
+  useAddSocialMutation,
+  useUpdateSocialMutation,
+  useDeleteSocialMutation,
   useGetCitiesQuery,
   useAddCityMutation,
   useUpdateCityMutation,
   useDeleteCityMutation,
-  useGetSchoolsQuery,
-  useAddSchoolMutation,
-  useUpdateSchoolMutation,
-  useDeleteSchoolMutation,
+  useGetTopicsQuery,
+  useAddTopicMutation,
+  useUpdateTopicMutation,
+  useDeleteTopicMutation,
   useGetNotificationsQuery,
   useAddNotificationMutation,
   useUpdateNotificationMutation,
@@ -33,76 +35,100 @@ import {
   useGetQueueStatsQuery,
   useRetryQueueJobMutation,
   useDeleteQueueJobMutation,
+  type Social,
   type City,
-  type School,
+  type Topic,
   type Notification,
   type QueueJob,
 } from "@/lib/features/api/systemApi";
-import { Edit, Save, X, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 
-interface SiteInfoForm {
-  siteName: string;
-  companyName: string;
-  email: string;
-  taxCode: string;
-  phone: string;
-  address: string;
+interface SocialForm {
+  platform: string;
+  url: string;
 }
 
 interface CityForm {
   name: string;
 }
 
-interface SchoolForm {
-  name: string;
-  cityId: number | undefined;
+interface TopicForm {
+  title: string;
 }
 
 interface NotificationForm {
   title: string;
-  content: string;
-  type: string;
+  message: string;
 }
 
-// Site Information Component
-function SiteInfoTab() {
-  const [isEditing, setIsEditing] = useState(false);
+// Socials Management Component
+function SocialsTab() {
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const { data: siteInfo, isLoading: siteInfoLoading } = useGetSiteInfoQuery();
-  const [updateSiteInfo, { isLoading: updating }] = useUpdateSiteInfoMutation();
+  const { data: socials, isLoading: socialsLoading } = useGetSocialsQuery();
+  const [addSocial, { isLoading: creating }] = useAddSocialMutation();
+  const [updateSocial, { isLoading: updating }] = useUpdateSocialMutation();
+  const [deleteSocial, { isLoading: deleting }] = useDeleteSocialMutation();
 
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<SiteInfoForm>({
-    defaultValues: siteInfo || {},
-  });
+    register: registerNew,
+    handleSubmit: handleSubmitNew,
+    reset: resetNew,
+  } = useForm<SocialForm>();
+  const {
+    register: registerEdit,
+    handleSubmit: handleSubmitEdit,
+    reset: resetEdit,
+  } = useForm<SocialForm>();
 
-  React.useEffect(() => {
-    if (siteInfo) {
-      reset(siteInfo);
-    }
-  }, [siteInfo, reset]);
-
-  const onSubmit = async (data: SiteInfoForm) => {
+  const onCreateSubmit = async (data: SocialForm) => {
     try {
-      await updateSiteInfo(data).unwrap();
-      toast.success("Site information updated successfully");
-      setIsEditing(false);
+      await addSocial(data).unwrap();
+      toast.success("Social created successfully");
+      resetNew();
+      setIsAddingNew(false);
     } catch {
-      toast.error("Failed to update site information");
+      toast.error("Failed to create social");
     }
   };
 
-  const handleCancel = () => {
-    reset(siteInfo || {});
-    setIsEditing(false);
+  const onUpdateSubmit = async (data: SocialForm) => {
+    if (!editingId) return;
+
+    try {
+      await updateSocial({ id: editingId, data }).unwrap();
+      toast.success("Social updated successfully");
+      setEditingId(null);
+      resetEdit();
+    } catch {
+      toast.error("Failed to update social");
+    }
   };
 
-  if (siteInfoLoading) {
-    return <div>Loading site information...</div>;
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this social link?")) return;
+
+    try {
+      await deleteSocial(id).unwrap();
+      toast.success("Social deleted successfully");
+    } catch {
+      toast.error("Failed to delete social");
+    }
+  };
+
+  const startEdit = (social: Social) => {
+    setEditingId(social.id);
+    resetEdit({ platform: social.platform, url: social.url });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    resetEdit();
+  };
+
+  if (socialsLoading) {
+    return <div>Loading socials...</div>;
   }
 
   return (
@@ -110,117 +136,138 @@ function SiteInfoTab() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Site Information</CardTitle>
+            <CardTitle>Social Media Links</CardTitle>
             <CardDescription>
-              Manage basic site and company information
+              Manage social media platform links
             </CardDescription>
           </div>
-          {!isEditing && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
+          <Button onClick={() => setIsAddingNew(true)} disabled={isAddingNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Social Link
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="siteName">Site Name</Label>
-              <Input
-                id="siteName"
-                {...register("siteName", { required: "Site name is required" })}
-                disabled={!isEditing}
-              />
-              {errors.siteName && (
-                <p className="text-sm text-red-500">
-                  {errors.siteName.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
-              <Input
-                id="companyName"
-                {...register("companyName", {
-                  required: "Company name is required",
-                })}
-                disabled={!isEditing}
-              />
-              {errors.companyName && (
-                <p className="text-sm text-red-500">
-                  {errors.companyName.message}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                {...register("email", {
-                  required: "Email is required",
-                  pattern: {
-                    value: /^\S+@\S+$/i,
-                    message: "Invalid email address",
-                  },
-                })}
-                disabled={!isEditing}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="taxCode">Tax Code</Label>
-              <Input
-                id="taxCode"
-                {...register("taxCode")}
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" {...register("phone")} disabled={!isEditing} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              {...register("address")}
-              disabled={!isEditing}
-            />
-          </div>
-
-          {isEditing && (
-            <div className="flex space-x-2 pt-4">
-              <Button type="submit" disabled={updating}>
-                <Save className="h-4 w-4 mr-2" />
-                {updating ? "Saving..." : "Save"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={updating}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-            </div>
+        <div className="space-y-4">
+          {isAddingNew && (
+            <form
+              onSubmit={handleSubmitNew(onCreateSubmit)}
+              className="border rounded-lg p-4 space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-social-platform">Platform</Label>
+                  <Input
+                    id="new-social-platform"
+                    placeholder="e.g. Facebook, Twitter, Instagram"
+                    {...registerNew("platform", {
+                      required: "Platform is required",
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-social-url">URL</Label>
+                  <Input
+                    id="new-social-url"
+                    placeholder="https://..."
+                    {...registerNew("url", {
+                      required: "URL is required",
+                    })}
+                  />
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button type="submit" size="sm" disabled={creating}>
+                  {creating ? "Creating..." : "Save"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingNew(false);
+                    resetNew();
+                  }}
+                  disabled={creating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
           )}
-        </form>
+
+          <div className="space-y-2">
+            {socials?.map((social: Social) => (
+              <div
+                key={social.id}
+                className="flex items-center justify-between border rounded-lg p-3"
+              >
+                {editingId === social.id ? (
+                  <form
+                    onSubmit={handleSubmitEdit(onUpdateSubmit)}
+                    className="flex items-center space-x-2 flex-1 gap-2"
+                  >
+                    <Input
+                      {...registerEdit("platform", {
+                        required: "Platform is required",
+                      })}
+                      placeholder="Platform"
+                      className="flex-1"
+                    />
+                    <Input
+                      {...registerEdit("url", {
+                        required: "URL is required",
+                      })}
+                      placeholder="URL"
+                      className="flex-1"
+                    />
+                    <Button type="submit" size="sm" disabled={updating}>
+                      {updating ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelEdit}
+                      disabled={updating}
+                    >
+                      Cancel
+                    </Button>
+                  </form>
+                ) : (
+                  <>
+                    <div>
+                      <span className="font-medium">{social.platform}</span>
+                      <p className="text-sm text-muted-foreground">{social.url}</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => startEdit(social)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(social.id)}
+                        disabled={deleting}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+            {socials?.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No social links found. Add your first social link above.
+              </div>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -412,78 +459,65 @@ function CitiesTab() {
   );
 }
 
-// Schools Management Component
-function SchoolsTab() {
+// Topics Management Component
+function TopicsTab() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const { data: cities } = useGetCitiesQuery();
-  const { data: schools, isLoading: schoolsLoading } = useGetSchoolsQuery();
-  const [addSchool, { isLoading: creating }] = useAddSchoolMutation();
-  const [updateSchool, { isLoading: updating }] = useUpdateSchoolMutation();
-  const [deleteSchool, { isLoading: deleting }] = useDeleteSchoolMutation();
+  const { data: topics, isLoading: topicsLoading } = useGetTopicsQuery();
+  const [addTopic, { isLoading: creating }] = useAddTopicMutation();
+  const [updateTopic, { isLoading: updating }] = useUpdateTopicMutation();
+  const [deleteTopic, { isLoading: deleting }] = useDeleteTopicMutation();
 
   const {
     register: registerNew,
     handleSubmit: handleSubmitNew,
     reset: resetNew,
-  } = useForm<SchoolForm>();
+  } = useForm<TopicForm>();
   const {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
-  } = useForm<SchoolForm>();
+  } = useForm<TopicForm>();
 
-  const onCreateSubmit = async (data: SchoolForm) => {
+  const onCreateSubmit = async (data: TopicForm) => {
     try {
-      await addSchool({
-        name: data.name,
-        cityId: data.cityId || undefined,
-      }).unwrap();
-      toast.success("School created successfully");
+      await addTopic(data).unwrap();
+      toast.success("Topic created successfully");
       resetNew();
       setIsAddingNew(false);
     } catch {
-      toast.error("Failed to create school");
+      toast.error("Failed to create topic");
     }
   };
 
-  const onUpdateSubmit = async (data: SchoolForm) => {
+  const onUpdateSubmit = async (data: TopicForm) => {
     if (!editingId) return;
 
     try {
-      await updateSchool({
-        id: editingId,
-        data: {
-          name: data.name,
-          cityId: data.cityId || undefined,
-        },
-      }).unwrap();
-      toast.success("School updated successfully");
+      await updateTopic({ id: editingId, data }).unwrap();
+      toast.success("Topic updated successfully");
       setEditingId(null);
       resetEdit();
     } catch {
-      toast.error("Failed to update school");
+      toast.error("Failed to update topic");
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this school?")) return;
+    if (!confirm("Are you sure you want to delete this topic?")) return;
 
     try {
-      await deleteSchool(id).unwrap();
-      toast.success("School deleted successfully");
+      await deleteTopic(id).unwrap();
+      toast.success("Topic deleted successfully");
     } catch {
-      toast.error("Failed to delete school");
+      toast.error("Failed to delete topic");
     }
   };
 
-  const startEdit = (school: School) => {
-    setEditingId(school.id);
-    resetEdit({
-      name: school.name,
-      cityId: school.cityId || undefined,
-    });
+  const startEdit = (topic: Topic) => {
+    setEditingId(topic.id);
+    resetEdit({ title: topic.title });
   };
 
   const cancelEdit = () => {
@@ -491,8 +525,8 @@ function SchoolsTab() {
     resetEdit();
   };
 
-  if (schoolsLoading) {
-    return <div>Loading schools...</div>;
+  if (topicsLoading) {
+    return <div>Loading topics...</div>;
   }
 
   return (
@@ -500,14 +534,14 @@ function SchoolsTab() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Schools Management</CardTitle>
+            <CardTitle>Topics Management</CardTitle>
             <CardDescription>
-              Manage schools and their city associations
+              Manage course topics and categories
             </CardDescription>
           </div>
           <Button onClick={() => setIsAddingNew(true)} disabled={isAddingNew}>
             <Plus className="h-4 w-4 mr-2" />
-            Add School
+            Add Topic
           </Button>
         </div>
       </CardHeader>
@@ -516,36 +550,16 @@ function SchoolsTab() {
           {isAddingNew && (
             <form
               onSubmit={handleSubmitNew(onCreateSubmit)}
-              className="border rounded-lg p-4 space-y-4"
+              className="border rounded-lg p-4"
             >
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-school-name">School Name</Label>
-                  <Input
-                    id="new-school-name"
-                    placeholder="School name"
-                    {...registerNew("name", {
-                      required: "School name is required",
-                    })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-school-city">City</Label>
-                  <select
-                    id="new-school-city"
-                    {...registerNew("cityId")}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">Select a city (optional)</option>
-                    {cities?.map((city) => (
-                      <option key={city.id} value={city.id}>
-                        {city.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="flex space-x-2">
+              <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="Topic title"
+                  {...registerNew("title", {
+                    required: "Topic title is required",
+                  })}
+                  className="flex-1"
+                />
                 <Button type="submit" size="sm" disabled={creating}>
                   {creating ? "Creating..." : "Save"}
                 </Button>
@@ -566,92 +580,69 @@ function SchoolsTab() {
           )}
 
           <div className="space-y-2">
-            {schools?.map((school: School) => (
-              <div key={school.id} className="border rounded-lg p-4">
-                {editingId === school.id ? (
+            {topics?.map((topic: Topic) => (
+              <div
+                key={topic.id}
+                className="flex items-center justify-between border rounded-lg p-3"
+              >
+                {editingId === topic.id ? (
                   <form
                     onSubmit={handleSubmitEdit(onUpdateSubmit)}
-                    className="space-y-4"
+                    className="flex items-center space-x-2 flex-1"
                   >
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor={`edit-school-name-${school.id}`}>
-                          School Name
-                        </Label>
-                        <Input
-                          id={`edit-school-name-${school.id}`}
-                          {...registerEdit("name", {
-                            required: "School name is required",
-                          })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`edit-school-city-${school.id}`}>
-                          City
-                        </Label>
-                        <select
-                          id={`edit-school-city-${school.id}`}
-                          {...registerEdit("cityId")}
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <option value="">Select a city (optional)</option>
-                          {cities?.map((city) => (
-                            <option key={city.id} value={city.id}>
-                              {city.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button type="submit" size="sm" disabled={updating}>
-                        {updating ? "Saving..." : "Save"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={cancelEdit}
-                        disabled={updating}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                    <Input
+                      {...registerEdit("title", {
+                        required: "Topic title is required",
+                      })}
+                      className="flex-1"
+                    />
+                    <Button type="submit" size="sm" disabled={updating}>
+                      {updating ? "Saving..." : "Save"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={cancelEdit}
+                      disabled={updating}
+                    >
+                      Cancel
+                    </Button>
                   </form>
                 ) : (
-                  <div className="flex items-center justify-between">
+                  <>
                     <div>
-                      <h3 className="font-medium">{school.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {school.city
-                          ? `City: ${school.city.name}`
-                          : "No city assigned"}
-                      </p>
+                      <span className="font-medium">{topic.title}</span>
+                      {topic.slug && (
+                        <p className="text-sm text-muted-foreground">
+                          Slug: {topic.slug}
+                        </p>
+                      )}
                     </div>
                     <div className="flex space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => startEdit(school)}
+                        onClick={() => startEdit(topic)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDelete(school.id)}
+                        onClick={() => handleDelete(topic.id)}
                         disabled={deleting}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             ))}
-            {schools?.length === 0 && (
+            {topics?.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                No schools found. Add your first school above.
+                No topics found. Add your first topic above.
               </div>
             )}
           </div>
@@ -666,7 +657,7 @@ function NotificationsTab() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const { data: notifications, isLoading: notificationsLoading } =
+  const { data: notificationsResponse, isLoading: notificationsLoading } =
     useGetNotificationsQuery();
   const [addNotification, { isLoading: creating }] =
     useAddNotificationMutation();
@@ -674,6 +665,10 @@ function NotificationsTab() {
     useUpdateNotificationMutation();
   const [deleteNotification, { isLoading: deleting }] =
     useDeleteNotificationMutation();
+
+  // Extract notifications and pagination from response
+  const notifications = notificationsResponse?.notifications || [];
+  const pagination = notificationsResponse?.pagination;
 
   const {
     register: registerNew,
@@ -725,8 +720,7 @@ function NotificationsTab() {
     setEditingId(notification.id);
     resetEdit({
       title: notification.title,
-      content: notification.content || "",
-      type: notification.type || "",
+      message: notification.message || "",
     });
   };
 
@@ -769,27 +763,13 @@ function NotificationsTab() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="new-notification-content">Content</Label>
+                <Label htmlFor="new-notification-message">Content</Label>
                 <textarea
-                  id="new-notification-content"
-                  placeholder="Notification content"
-                  {...registerNew("content")}
+                  id="new-notification-message"
+                  placeholder="Notification message"
+                  {...registerNew("message")}
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-notification-type">Type</Label>
-                <select
-                  id="new-notification-type"
-                  {...registerNew("type")}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Select type (optional)</option>
-                  <option value="info">Info</option>
-                  <option value="warning">Warning</option>
-                  <option value="error">Error</option>
-                  <option value="success">Success</option>
-                </select>
               </div>
               <div className="flex space-x-2">
                 <Button type="submit" size="sm" disabled={creating}>
@@ -834,33 +814,15 @@ function NotificationsTab() {
                     </div>
                     <div className="space-y-2">
                       <Label
-                        htmlFor={`edit-notification-content-${notification.id}`}
+                        htmlFor={`edit-notification-message-${notification.id}`}
                       >
-                        Content
+                        Message
                       </Label>
                       <textarea
-                        id={`edit-notification-content-${notification.id}`}
-                        {...registerEdit("content")}
+                        id={`edit-notification-message-${notification.id}`}
+                        {...registerEdit("message")}
                         className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor={`edit-notification-type-${notification.id}`}
-                      >
-                        Type
-                      </Label>
-                      <select
-                        id={`edit-notification-type-${notification.id}`}
-                        {...registerEdit("type")}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="">Select type (optional)</option>
-                        <option value="info">Info</option>
-                        <option value="warning">Warning</option>
-                        <option value="error">Error</option>
-                        <option value="success">Success</option>
-                      </select>
                     </div>
                     <div className="flex space-x-2">
                       <Button type="submit" size="sm" disabled={updating}>
@@ -881,31 +843,21 @@ function NotificationsTab() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="font-medium">{notification.title}</h3>
-                      {notification.content && (
+                      {notification.message && (
                         <p className="text-sm text-muted-foreground mt-1">
-                          {notification.content}
+                          {notification.message}
                         </p>
                       )}
                       <div className="flex items-center gap-2 mt-2">
-                        {notification.type && (
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              notification.type === "error"
-                                ? "bg-red-100 text-red-800"
-                                : notification.type === "warning"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : notification.type === "success"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {notification.type}
-                          </span>
-                        )}
                         <span className="text-xs text-muted-foreground">
                           {new Date(
                             notification.createdAt
                           ).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-muted-foreground font-medium text-primary">
+                          {notification.teacher? `Teacher: ${notification.teacher.name}` : "System Notification"}
                         </span>
                       </div>
                     </div>
@@ -936,6 +888,23 @@ function NotificationsTab() {
               </div>
             )}
           </div>
+
+          {/* Pagination Info */}
+          {pagination && notifications.length > 0 && (
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div>
+                Showing {(pagination.currentPage - 1) * pagination.limit + 1} to{" "}
+                {Math.min(
+                  pagination.currentPage * pagination.limit,
+                  pagination.totalItems
+                )}{" "}
+                of {pagination.totalItems} notifications
+              </div>
+              <div>
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -1119,30 +1088,30 @@ export default function SystemPage() {
             System Administration
           </h1>
           <p className="text-muted-foreground">
-            Manage system settings and locations
+            Manage system settings, topics, and content
           </p>
         </div>
       </div>
 
-      <Tabs defaultValue="siteinfo" className="space-y-4">
+      <Tabs defaultValue="socials" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="siteinfo">Site Information</TabsTrigger>
+          <TabsTrigger value="socials">Social Media</TabsTrigger>
           <TabsTrigger value="cities">Cities</TabsTrigger>
-          <TabsTrigger value="schools">Schools</TabsTrigger>
+          <TabsTrigger value="topics">Topics</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="queue">Background Jobs</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="siteinfo" className="space-y-4">
-          <SiteInfoTab />
+        <TabsContent value="socials" className="space-y-4">
+          <SocialsTab />
         </TabsContent>
 
         <TabsContent value="cities" className="space-y-4">
           <CitiesTab />
         </TabsContent>
 
-        <TabsContent value="schools" className="space-y-4">
-          <SchoolsTab />
+        <TabsContent value="topics" className="space-y-4">
+          <TopicsTab />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">

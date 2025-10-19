@@ -1,16 +1,13 @@
 ﻿import { baseApi, ApiResponse } from "./baseApi";
 
 // System interfaces theo BE model thực tế
-export interface SiteInfo {
-  id: number | null;
-  siteName: string;
-  companyName: string;
-  email: string;
-  taxCode: string;
-  phone: string;
-  address: string;
-  createdAt: string | null;
-  updatedAt: string | null;
+export interface Social {
+  id: number;
+  platform: string;
+  url: string;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string;
 }
 
 export interface City {
@@ -20,21 +17,25 @@ export interface City {
   updatedAt: string;
 }
 
-export interface School {
+export interface Topic {
   id: number;
-  name: string;
-  cityId: number | null;
+  title: string;
+  slug?: string;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
-  city?: City;
 }
 
 export interface Notification {
   id: number;
   title: string;
-  content?: string;
-  type?: string;
+  message?: string;
+  teacherId?: number;
+  teacher?: {
+    id: number;
+    name: string;
+    email?: string;
+  };
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
@@ -68,6 +69,26 @@ export interface QueueResponse {
   };
 }
 
+export interface NotificationsResponse {
+  notifications: Notification[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    limit: number;
+  };
+}
+
+export interface CreateSocialData {
+  platform: string;
+  url: string;
+}
+
+export interface UpdateSocialData {
+  platform?: string;
+  url?: string;
+}
+
 export interface CreateCityData {
   name: string;
 }
@@ -76,64 +97,71 @@ export interface UpdateCityData {
   name?: string;
 }
 
-export interface CreateSchoolData {
-  name: string;
-  cityId?: number;
+export interface CreateTopicData {
+  title: string;
 }
 
-export interface UpdateSchoolData {
-  name?: string;
-  cityId?: number;
+export interface UpdateTopicData {
+  title?: string;
 }
 
 export interface CreateNotificationData {
   title: string;
-  content?: string;
-  type?: string;
+  message?: string;
 }
 
 export interface UpdateNotificationData {
   title?: string;
-  content?: string;
-  type?: string;
-}
-
-export interface UpdateSiteInfoData {
-  siteName?: string;
-  companyName?: string;
-  email?: string;
-  taxCode?: string;
-  phone?: string;
-  address?: string;
+  message?: string;
 }
 
 export const systemApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    // Site Info endpoints
-    getSiteInfo: builder.query<SiteInfo, void>({
-      query: () => "/system/site-info",
-      transformResponse: (response: ApiResponse<SiteInfo>) => {
+    // Socials endpoints
+    getSocials: builder.query<Social[], void>({
+      query: () => "/system/socials",
+      transformResponse: (response: ApiResponse<Social[]>) => {
+        return response.data || [];
+      },
+      providesTags: ["Social"],
+    }),
+
+    addSocial: builder.mutation<Social, CreateSocialData>({
+      query: (data) => ({
+        url: "/system/socials",
+        method: "POST",
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<Social>) => {
         if (!response.data) {
-          throw new Error(response.message || 'Failed to get site info');
+          throw new Error(response.message || 'Failed to create social');
         }
         return response.data;
       },
-      providesTags: ["SiteInfo"],
+      invalidatesTags: ["Social"],
     }),
 
-    updateSiteInfo: builder.mutation<SiteInfo, UpdateSiteInfoData>({
-      query: (data) => ({
-        url: "/system/site-info",
+    updateSocial: builder.mutation<Social, { id: number; data: UpdateSocialData }>({
+      query: ({ id, data }) => ({
+        url: `/system/socials/${id}`,
         method: "PUT",
         body: data,
       }),
-      transformResponse: (response: ApiResponse<SiteInfo>) => {
+      transformResponse: (response: ApiResponse<Social>) => {
         if (!response.data) {
-          throw new Error(response.message || 'Failed to update site info');
+          throw new Error(response.message || 'Failed to update social');
         }
         return response.data;
       },
-      invalidatesTags: ["SiteInfo"],
+      invalidatesTags: ["Social"],
+    }),
+
+    deleteSocial: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/system/socials/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Social"],
     }),
 
     // Cities endpoints
@@ -183,58 +211,58 @@ export const systemApi = baseApi.injectEndpoints({
       invalidatesTags: ["City"],
     }),
 
-    // Schools endpoints
-    getSchools: builder.query<School[], void>({
-      query: () => "/system/schools",
-      transformResponse: (response: ApiResponse<School[]>) => {
+    // Topics endpoints
+    getTopics: builder.query<Topic[], void>({
+      query: () => "/system/topics",
+      transformResponse: (response: ApiResponse<Topic[]>) => {
         return response.data || [];
       },
-      providesTags: ["School"],
+      providesTags: ["Topic"],
     }),
 
-    addSchool: builder.mutation<School, CreateSchoolData>({
+    addTopic: builder.mutation<Topic, CreateTopicData>({
       query: (data) => ({
-        url: "/system/schools",
+        url: "/system/topics",
         method: "POST",
         body: data,
       }),
-      transformResponse: (response: ApiResponse<School>) => {
+      transformResponse: (response: ApiResponse<Topic>) => {
         if (!response.data) {
-          throw new Error(response.message || 'Failed to create school');
+          throw new Error(response.message || 'Failed to create topic');
         }
         return response.data;
       },
-      invalidatesTags: ["School"],
+      invalidatesTags: ["Topic"],
     }),
 
-    updateSchool: builder.mutation<School, { id: number; data: UpdateSchoolData }>({
+    updateTopic: builder.mutation<Topic, { id: number; data: UpdateTopicData }>({
       query: ({ id, data }) => ({
-        url: `/system/schools/${id}`,
+        url: `/system/topics/${id}`,
         method: "PUT",
         body: data,
       }),
-      transformResponse: (response: ApiResponse<School>) => {
+      transformResponse: (response: ApiResponse<Topic>) => {
         if (!response.data) {
-          throw new Error(response.message || 'Failed to update school');
+          throw new Error(response.message || 'Failed to update topic');
         }
         return response.data;
       },
-      invalidatesTags: ["School"],
+      invalidatesTags: ["Topic"],
     }),
 
-    deleteSchool: builder.mutation<void, number>({
+    deleteTopic: builder.mutation<void, number>({
       query: (id) => ({
-        url: `/system/schools/${id}`,
+        url: `/system/topics/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["School"],
+      invalidatesTags: ["Topic"],
     }),
 
     // Notifications endpoints
-    getNotifications: builder.query<Notification[], void>({
+    getNotifications: builder.query<NotificationsResponse, void>({
       query: () => "/system/notifications",
-      transformResponse: (response: ApiResponse<Notification[]>) => {
-        return response.data || [];
+      transformResponse: (response: ApiResponse<NotificationsResponse>) => {
+        return response.data || { notifications: [], pagination: { currentPage: 1, totalPages: 0, totalItems: 0, limit: 10 } };
       },
       providesTags: ["Notification"],
     }),
@@ -316,16 +344,18 @@ export const systemApi = baseApi.injectEndpoints({
 });
 
 export const {
-  useGetSiteInfoQuery,
-  useUpdateSiteInfoMutation,
+  useGetSocialsQuery,
+  useAddSocialMutation,
+  useUpdateSocialMutation,
+  useDeleteSocialMutation,
   useGetCitiesQuery,
   useAddCityMutation,
   useUpdateCityMutation,
   useDeleteCityMutation,
-  useGetSchoolsQuery,
-  useAddSchoolMutation,
-  useUpdateSchoolMutation,
-  useDeleteSchoolMutation,
+  useGetTopicsQuery,
+  useAddTopicMutation,
+  useUpdateTopicMutation,
+  useDeleteTopicMutation,
   useGetNotificationsQuery,
   useAddNotificationMutation,
   useUpdateNotificationMutation,
