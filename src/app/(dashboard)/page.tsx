@@ -253,7 +253,7 @@ export default function Dashboard() {
             <div className="flex items-center space-x-1 text-xs text-muted-foreground">
               <Eye className="h-3 w-3" />
               <span>
-                {overview.livestreams.totalViews.toLocaleString()} views
+                {overview.livestreams?.totalViews?.toLocaleString() || 0} views
               </span>
             </div>
           </CardContent>
