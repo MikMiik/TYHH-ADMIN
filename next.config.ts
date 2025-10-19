@@ -13,8 +13,10 @@ const nextConfig: NextConfig = {
         hostname:"images.pexels.com",
       },
       {
-        protocol:"https",
-        hostname:"localhost",
+        protocol: 'https',
+        hostname: 'api.tyhh.online',
+        port: '443',
+        pathname: '/uploads/**',
       },
     ]
   },
