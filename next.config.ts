@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         port: '3002',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.tyhh.online',
+        port: '',
+        pathname: '/uploads/**',
+      },
     ]
   },
   webpack: (config) => {
