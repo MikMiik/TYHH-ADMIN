@@ -192,13 +192,13 @@ export const courseColumns: ColumnDef<Course>[] = [
         <div className="space-y-1">
           {discount > 0 ? (
             <div className="text-sm text-muted-foreground">
-              <p className="line-through">{price.toLocaleString("vi-VN")}₫</p>
+              <p className="line-through">{(price ?? 0).toLocaleString("vi-VN")}₫</p>
               <span className="text-green-600">
-                {discount.toLocaleString("vi-VN")}₫
+                {(discount ?? 0).toLocaleString("vi-VN")}₫
               </span>
             </div>
           ) : (
-            <span>{price > 0 ? `${price.toLocaleString("vi-VN")}₫` : "-"}</span>
+            <span>{price > 0 ? `${(price ?? 0).toLocaleString("vi-VN")}₫` : "-"}</span>
           )}
         </div>
       );

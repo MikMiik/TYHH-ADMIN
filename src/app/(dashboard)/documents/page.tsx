@@ -431,7 +431,7 @@ export default function DocumentsPage() {
               {isLoading
                 ? "..."
                 : typeof stats.totalDownloads === "number"
-                ? stats.totalDownloads.toLocaleString()
+                ? (stats.totalDownloads ?? 0).toLocaleString()
                 : 0}
             </div>
           </CardContent>

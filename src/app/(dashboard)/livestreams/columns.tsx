@@ -98,7 +98,7 @@ export const livestreamColumns: ColumnDef<Livestream>[] = [
       return (
         <div className="flex items-center space-x-1">
           <Eye className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">{view.toLocaleString()}</span>
+          <span className="font-medium">{(view ?? 0).toLocaleString()}</span>
         </div>
       );
     },

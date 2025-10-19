@@ -550,7 +550,7 @@ export default function DocumentDetailPage({
               <div className="text-center p-4 bg-muted rounded-lg">
                 <Download className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
                 <p className="text-2xl font-bold">
-                  {document.downloadCount.toLocaleString()}
+                  {(document?.downloadCount ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground">Downloads</p>
               </div>

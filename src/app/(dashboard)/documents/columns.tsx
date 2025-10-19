@@ -94,7 +94,7 @@ export const documentColumns: ColumnDef<Document>[] = [
     cell: ({ row }) => {
       const downloadCount = row.getValue("downloadCount") as number;
       return (
-        <div className="font-medium">{downloadCount.toLocaleString()}</div>
+        <div className="font-medium">{(downloadCount ?? 0).toLocaleString()}</div>
       );
     },
   },

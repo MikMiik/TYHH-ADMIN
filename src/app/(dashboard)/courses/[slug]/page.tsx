@@ -978,11 +978,11 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                           {course.price !== undefined &&
                           course.price !== null &&
                           !isNaN(Number(course.price))
-                            ? Number(course.price).toLocaleString("vi-VN") + "₫"
+                            ? (Number(course.price) ?? 0).toLocaleString("vi-VN") + "₫"
                             : "-"}
                         </p>
                         <p className="text-xl font-bold text-green-600">
-                          {Number(course.discount).toLocaleString("vi-VN")}₫
+                          {(Number(course.discount) ?? 0).toLocaleString("vi-VN")}₫
                         </p>
                       </>
                     ) : (
@@ -990,7 +990,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                         {course.price !== undefined &&
                         course.price !== null &&
                         !isNaN(Number(course.price))
-                          ? Number(course.price).toLocaleString("vi-VN") + "₫"
+                          ? (Number(course.price) ?? 0).toLocaleString("vi-VN") + "₫"
                           : "-"}
                       </p>
                     )}
@@ -1015,7 +1015,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                 <h4 className="font-medium text-sm mb-2">Price (VND)</h4>
                 <InlineEdit
                   value={
-                    Number(course.price)?.toLocaleString("vi-VN") + "₫" || ""
+                    (Number(course.price) ?? 0).toLocaleString("vi-VN") + "₫" || ""
                   }
                   onSave={async (value) => {
                     const numericValue = parseFloat(value) || 0;
@@ -1037,7 +1037,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                 </h4>
                 <InlineEdit
                   value={
-                    Number(course.discount)?.toLocaleString("vi-VN") + "₫" || ""
+                    (Number(course.discount) ?? 0).toLocaleString("vi-VN") + "₫" || ""
                   }
                   onSave={async (value) => {
                     const numericValue = parseFloat(value) || 0;

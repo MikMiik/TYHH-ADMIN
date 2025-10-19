@@ -188,10 +188,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {overview.users.total.toLocaleString()}
+              {(overview?.users?.total ?? 0).toLocaleString()}
             </div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-              <span>Active: {overview.users.active.toLocaleString()}</span>
+              <span>Active: {(overview?.users?.active ?? 0).toLocaleString()}</span>
               {growth.users.growth !== 0 && (
                 <Badge
                   variant={growth.users.growth > 0 ? "default" : "destructive"}
@@ -216,11 +216,11 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {overview.courses.total.toLocaleString()}
+              {(overview?.courses?.total ?? 0).toLocaleString()}
             </div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <span>
-                Enrollments: {overview.enrollments.total.toLocaleString()}
+                Enrollments: {(overview?.enrollments?.total ?? 0).toLocaleString()}
               </span>
               {growth.courses.growth !== 0 && (
                 <Badge
@@ -248,12 +248,12 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {overview.livestreams.total.toLocaleString()}
+              {(overview?.livestreams?.total ?? 0).toLocaleString()}
             </div>
             <div className="flex items-center space-x-1 text-xs text-muted-foreground">
               <Eye className="h-3 w-3" />
               <span>
-                {overview.livestreams?.totalViews?.toLocaleString() || 0} views
+                {(overview?.livestreams?.totalViews ?? 0).toLocaleString()} views
               </span>
             </div>
           </CardContent>
@@ -266,12 +266,12 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {overview.documents.total.toLocaleString()}
+              {(overview?.documents?.total ?? 0).toLocaleString()}
             </div>
             <div className="flex items-center space-x-1 text-xs text-muted-foreground">
               <Download className="h-3 w-3" />
               <span>
-                {overview.documents.totalDownloads.toLocaleString()} downloads
+                {(overview?.documents?.totalDownloads ?? 0).toLocaleString()} downloads
               </span>
             </div>
           </CardContent>
@@ -439,7 +439,7 @@ export default function Dashboard() {
                       </p>
                       <div className="flex items-center text-xs text-muted-foreground">
                         <Eye className="mr-1 h-3 w-3" />
-                        {livestream.view.toLocaleString()} views
+                        {(livestream?.view ?? 0).toLocaleString()} views
                       </div>
                     </div>
                   </div>
@@ -461,7 +461,7 @@ export default function Dashboard() {
                     </p>
                     <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                       <Download className="h-3 w-3" />
-                      <span>{document.downloadCount.toLocaleString()}</span>
+                      <span>{(document?.downloadCount ?? 0).toLocaleString()}</span>
                       {document.vip && (
                         <Badge variant="secondary" className="text-xs">
                           VIP

@@ -1018,10 +1018,10 @@ function QueueTab() {
                         Retries: {job.retriesCount}/{job.maxRetries}
                       </div>
                       <div>
-                        Created: {new Date(job.createdAt).toLocaleString()}
+                        Created: {job.createdAt ? new Date(job.createdAt).toLocaleString() : 'N/A'}
                       </div>
                       <div>
-                        Updated: {new Date(job.updatedAt).toLocaleString()}
+                        Updated: {job.updatedAt ? new Date(job.updatedAt).toLocaleString() : 'N/A'}
                       </div>
                     </div>
                   </div>
