@@ -406,6 +406,7 @@ export default function DocumentDetailPage({
                     toast.error(`Thumbnail upload failed: ${error}`);
                   }}
                   className="w-full"
+                  height={400}
                   title="Document Thumbnail"
                   fileName="doc-thumbnail"
                 />

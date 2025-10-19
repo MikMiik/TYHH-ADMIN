@@ -18,7 +18,7 @@ import {
 } from "@/lib/features/api/courseOutlineApi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -212,6 +212,12 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     refetch,
   } = useGetCourseQuery(courseSlug);
 
+  // Sort course outlines by order field
+  const sortedOutlines = useMemo(() => {
+    if (!course?.outlines) return [];
+    return [...course.outlines].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [course?.outlines]);
+
   const [deleteCourse] = useDeleteCourseMutation();
   const [updateCourse] = useUpdateCourseMutation();
   const [createCourseOutline] = useCreateCourseOutlineMutation();
@@ -317,15 +323,15 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
       return;
     }
 
-    if (!course?.outlines) return;
+    if (!sortedOutlines || sortedOutlines.length === 0) return;
 
-    const oldIndex = course.outlines.findIndex((item) => item.id === active.id);
-    const newIndex = course.outlines.findIndex((item) => item.id === over.id);
+    const oldIndex = sortedOutlines.findIndex((item) => item.id === active.id);
+    const newIndex = sortedOutlines.findIndex((item) => item.id === over.id);
 
     if (oldIndex === -1 || newIndex === -1) return;
 
     // Create new order array
-    const reorderedOutlines = arrayMove(course.outlines, oldIndex, newIndex);
+    const reorderedOutlines = arrayMove(sortedOutlines, oldIndex, newIndex);
 
     // Create orders payload for API
     const orders = reorderedOutlines.map((outline, index) => ({
@@ -334,6 +340,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     }));
 
     try {
+      if (!course) return;
+      
       await reorderCourseOutlines({
         courseId: course.id,
         data: { orders },
@@ -889,7 +897,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center">
                   <BookOpen className="mr-2 h-5 w-5" />
-                  Course Outlines ({course.outlines?.length || 0})
+                  Course Outlines ({sortedOutlines.length})
                 </CardTitle>
                 <Button size="sm" onClick={handleAddOutline}>
                   Add Outline
@@ -897,18 +905,18 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               </div>
             </CardHeader>
             <CardContent>
-              {course.outlines && course.outlines.length > 0 ? (
+              {sortedOutlines && sortedOutlines.length > 0 ? (
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={course.outlines.map((outline) => outline.id)}
+                    items={sortedOutlines.map((outline) => outline.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-3">
-                      {course.outlines.map((outline, index) => (
+                      {sortedOutlines.map((outline, index) => (
                         <SortableOutlineItem
                           key={outline.id}
                           outline={outline}
@@ -952,7 +960,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                 <div className="text-center p-3 bg-muted rounded-lg">
                   <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
                   <p className="text-2xl font-bold">
-                    {course.outlines?.length || 0}
+                    {sortedOutlines.length}
                   </p>
                   <p className="text-xs text-muted-foreground">Outlines</p>
                 </div>
@@ -1093,7 +1101,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   <div className="flex items-center gap-3 p-2 bg-muted rounded-lg">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>
-                        {course.teacher.name
+                        {course.teacher?.name
                           .split(" ")
                           .map((n) => n[0])
                           .join("")
@@ -1102,10 +1110,10 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium">
-                        {course.teacher.name}
+                        {course.teacher?.name || "Unknown"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {course.teacher.email}
+                        {course.teacher?.email || "Unknown"}
                       </p>
                     </div>
                   </div>

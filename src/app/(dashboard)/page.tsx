@@ -401,7 +401,7 @@ export default function Dashboard() {
                       {course.title}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      by {course.teacher.name}
+                      by {course.teacher?.name || "Unknown"}
                     </p>
                   </div>
                 </div>
