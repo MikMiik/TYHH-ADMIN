@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   
+  // Silence Next.js workspace root warning when multiple lockfiles exist
+  outputFileTracingRoot: undefined,
+  
   images:{
     remotePatterns:[
       {

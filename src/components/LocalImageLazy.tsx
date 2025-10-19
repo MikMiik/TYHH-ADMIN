@@ -41,6 +41,7 @@ export default function LocalImageLazy({
   };
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={imageSrc || placeholder || "/placeholder-image.svg"}
       alt={alt || "image"}
