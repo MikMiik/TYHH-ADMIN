@@ -9,7 +9,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import VideoUploader from "@/components/VideoUploader";
+import LocalVideoUploader from "@/components/LocalVideoUploader";
 import {
   ArrowLeft,
   Edit,
@@ -256,25 +256,6 @@ export default function LivestreamDetailPage({
     }
   };
 
-  // Helper function to extract relative path from ImageKit URL
-  const extractImageKitPath = (url: string): string => {
-    try {
-      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
-      const urlObj = new URL(url);
-      // Extract path and remove leading slash
-      const path = urlObj.pathname.substring(1);
-      // Remove the ImageKit ID prefix if it exists
-      const pathParts = path.split("/");
-      if (pathParts.length > 1) {
-        // Skip the first part (ImageKit ID) and join the rest
-        return pathParts.slice(1).join("/");
-      }
-      return path;
-    } catch (error) {
-      console.error("Error extracting ImageKit path:", error);
-      return url; // Fallback to original URL
-    }
-  };
 
   // Loading state
   if (isLoading) {
@@ -393,15 +374,14 @@ export default function LivestreamDetailPage({
             <CardContent className="space-y-4">
               {/* Video Upload and Player */}
               <div className="space-y-4">
-                <VideoUploader
+                <LocalVideoUploader
                   currentVideoUrl={uploadedVideo || livestream.url}
-                  onUploadSuccess={async (url) => {
-                    setUploadedVideo(url);
+                  onUploadSuccess={async (response) => {
+                    setUploadedVideo(response.filePath);
                     try {
-                      const relativePath = extractImageKitPath(url);
                       await updateLivestreamField(
                         "url",
-                        relativePath,
+                        response.filePath,
                         "Livestream video updated successfully!"
                       );
                     } catch {
@@ -413,8 +393,8 @@ export default function LivestreamDetailPage({
                     toast.error(`Video upload failed: ${error}`);
                   }}
                   className="w-full"
-                  uploadFolder="livestreams"
                   title="Livestream Video"
+                  fileName="livestream"
                 />
               </div>
 

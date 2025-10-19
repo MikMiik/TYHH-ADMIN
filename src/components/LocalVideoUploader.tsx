@@ -6,28 +6,35 @@ import { Progress } from "@/components/ui/progress";
 import { Video, Upload, X, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import VideoIK from "@/components/VideoIK";
-import ImageKitUploader, {
-  UploadResponse,
-  UploadOptions,
-} from "./ImagekitAuth";
+import LocalUploader, { UploadResponse, UploadOptions } from "./LocalUploader";
 
-interface VideoUploaderProps {
+interface LocalVideoUploaderProps {
   currentVideoUrl?: string;
-  onUploadSuccess?: (url: string) => void;
+  onUploadSuccess?: (response: UploadResponse) => void;
   onUploadError?: (error: string) => void;
   className?: string;
-  uploadFolder?: string;
   title?: string;
+  fileName?: string;
 }
 
-const VideoUploader: React.FC<VideoUploaderProps> = ({
+/**
+ * LocalVideoUploader - Video upload component using local storage
+ * Replaces ImageKit VideoUploader with local file upload
+ * 
+ * Usage:
+ * <LocalVideoUploader
+ *   currentVideoUrl="uploads/video.mp4"
+ *   onUploadSuccess={(response) => console.log(response.filePath)}
+ *   title="Video"
+ * />
+ */
+const LocalVideoUploader: React.FC<LocalVideoUploaderProps> = ({
   currentVideoUrl,
   onUploadSuccess,
   onUploadError,
   className = "",
-  uploadFolder = "uploads",
   title = "Video",
+  fileName = "video",
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -44,9 +51,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
       return;
     }
 
-    // Validate file size (max 100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      onUploadError?.("Video size must be less than 100MB");
+    // Validate file size (max 500MB)
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    if (file.size > maxSize) {
+      onUploadError?.("Video size must be less than 500MB");
       return;
     }
 
@@ -56,9 +64,8 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
 
     // Upload file
     uploadFile(file, {
-      fileName: `video_${Date.now()}.${file.name.split(".").pop()}`,
-      folder: `/${uploadFolder}`,
-      tags: ["video", uploadFolder],
+      fileName: `${fileName}_${Date.now()}.${file.name.split(".").pop()}`,
+      maxSize: maxSize,
     });
   };
 
@@ -69,13 +76,20 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
   };
 
+  // Construct current video URL
+  const videoSrc = currentVideoUrl
+    ? currentVideoUrl.startsWith("http")
+      ? currentVideoUrl
+      : `${process.env.NEXT_PUBLIC_SERVER_URL}/${currentVideoUrl}`
+    : null;
+
   return (
     <div className={className}>
-      <ImageKitUploader
+      <LocalUploader
         onUploadSuccess={(response) => {
           clearPreview();
-          if (response.url) {
-            onUploadSuccess?.(response.url);
+          if (response) {
+            onUploadSuccess?.(response);
           }
         }}
         onUploadError={(error) => {
@@ -122,7 +136,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
               <CardContent className="p-4">
                 {isUploading ? (
                   <div className="space-y-3">
-                    <div className="w-full h-48 bg-muted rounded border flex flex-col items-center justify-center">
+                    <div className="w-full aspect-video bg-muted rounded border flex flex-col items-center justify-center">
                       <Upload className="h-8 w-8 text-muted-foreground mb-2 animate-pulse" />
                       <p className="text-sm text-muted-foreground">
                         Uploading video...
@@ -156,14 +170,14 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                ) : currentVideoUrl ? (
+                ) : videoSrc ? (
                   <div className="relative">
-                    <div className="w-full aspect-video bg-muted rounded border flex items-center justify-center overflow-hidden">
-                      <VideoIK
-                        src={currentVideoUrl}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <video
+                      src={videoSrc}
+                      className="w-full aspect-video object-cover rounded border"
+                      controls
+                      preload="metadata"
+                    />
                     <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded">
                       <CheckCircle className="h-4 w-4" />
                     </div>
@@ -189,9 +203,10 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({
             )}
           </div>
         )}
-      </ImageKitUploader>
+      </LocalUploader>
     </div>
   );
 };
 
-export default VideoUploader;
+export default LocalVideoUploader;
+

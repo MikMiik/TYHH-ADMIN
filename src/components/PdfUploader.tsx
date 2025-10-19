@@ -6,10 +6,10 @@ import { Progress } from "@/components/ui/progress";
 import { FileText, Upload, CheckCircle, Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import ImageKitUploader, {
+import LocalUploader, {
   UploadResponse,
   UploadOptions,
-} from "./ImagekitAuth";
+} from "./LocalUploader";
 
 interface PdfUploaderProps {
   currentPdf?: string;
@@ -25,7 +25,6 @@ const PdfUploader: React.FC<PdfUploaderProps> = ({
   onUploadSuccess,
   onUploadError,
   className = "",
-  uploadFolder = "documents",
   title = "PDF Document",
 }) => {
   const [uploadingFile, setUploadingFile] = useState<File | null>(null);
@@ -55,8 +54,7 @@ const PdfUploader: React.FC<PdfUploaderProps> = ({
     // Upload file
     uploadFile(file, {
       fileName: `document_${Date.now()}.pdf`,
-      folder: `/${uploadFolder}`,
-      tags: ["document", "pdf", uploadFolder],
+      maxSize: 50 * 1024 * 1024, // 50MB max for PDFs
     });
   };
 
@@ -84,13 +82,13 @@ const PdfUploader: React.FC<PdfUploaderProps> = ({
 
   return (
     <div className={className}>
-      <ImageKitUploader
+      <LocalUploader
         onUploadSuccess={(response) => {
           clearUploadingFile();
-          if (response.url) {
+          if (response.filePath) {
             const fileName =
-              uploadingFile?.name || extractFileName(response.url);
-            onUploadSuccess?.(response.url, fileName);
+              uploadingFile?.name || extractFileName(response.filePath);
+            onUploadSuccess?.(response.filePath, fileName);
           }
         }}
         onUploadError={(error) => {
@@ -178,14 +176,7 @@ const PdfUploader: React.FC<PdfUploaderProps> = ({
                       <div className="bg-green-500 text-white p-1 rounded">
                         <CheckCircle className="h-4 w-4" />
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(currentPdf, "_blank")}
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
+                    
                     </div>
                   </div>
                 ) : (
@@ -209,7 +200,7 @@ const PdfUploader: React.FC<PdfUploaderProps> = ({
             )}
           </div>
         )}
-      </ImageKitUploader>
+      </LocalUploader>
     </div>
   );
 };

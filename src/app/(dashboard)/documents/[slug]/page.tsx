@@ -10,7 +10,8 @@ import { updateDocumentSchema } from "@/lib/schemas/document";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import ThumbnailUploader from "@/components/ThumbnailUploader";
+import LocalImageUploader from "@/components/LocalImageUploader";
+import PdfUploader from "@/components/PdfUploader";
 import {
   ArrowLeft,
   Edit,
@@ -70,6 +71,7 @@ export default function DocumentDetailPage({
   const [uploadedThumbnail, setUploadedThumbnail] = useState<string | null>(
     null
   );
+  const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -209,11 +211,12 @@ export default function DocumentDetailPage({
     }
 
     try {
-      const fullUrl = `${process.env.NEXT_PUBLIC_IK_URL_ENDPOINT || ""}${
-        document.url
-      }`;
+      const fullUrl = document.url.startsWith("http")
+        ? document.url
+        : `${process.env.NEXT_PUBLIC_SERVER_URL || ""}/${document.url}`;
       const link = window.document.createElement("a");
       link.href = fullUrl;
+      link.target = "_blank"; 
       link.download = `${document.title || "document"}.pdf`;
       window.document.body.appendChild(link);
       link.click();
@@ -253,25 +256,6 @@ export default function DocumentDetailPage({
     }
   };
 
-  // Helper function to extract relative path from ImageKit URL
-  const extractImageKitPath = (url: string): string => {
-    try {
-      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
-      const urlObj = new URL(url);
-      // Extract path and remove leading slash
-      const path = urlObj.pathname.substring(1);
-      // Remove the ImageKit ID prefix if it exists
-      const pathParts = path.split("/");
-      if (pathParts.length > 1) {
-        // Skip the first part (ImageKit ID) and join the rest
-        return pathParts.slice(1).join("/");
-      }
-      return path;
-    } catch (error) {
-      console.error("Error extracting ImageKit path:", error);
-      return url; // Fallback to original URL
-    }
-  };
 
   // Loading state
   if (isLoading) {
@@ -403,15 +387,14 @@ export default function DocumentDetailPage({
             <CardContent className="space-y-4">
               {/* Document Thumbnail Upload */}
               <div className="space-y-4">
-                <ThumbnailUploader
-                  currentThumbnail={uploadedThumbnail || document.thumbnail}
-                  onUploadSuccess={async (url) => {
-                    setUploadedThumbnail(url);
+                <LocalImageUploader
+                  currentImage={uploadedThumbnail || document.thumbnail}
+                  onUploadSuccess={async (response) => {
+                    setUploadedThumbnail(response.filePath);
                     try {
-                      const relativePath = extractImageKitPath(url);
                       await updateDocumentField(
                         "thumbnail",
-                        relativePath,
+                        response.filePath,
                         "Document thumbnail updated successfully!"
                       );
                     } catch {
@@ -423,27 +406,55 @@ export default function DocumentDetailPage({
                     toast.error(`Thumbnail upload failed: ${error}`);
                   }}
                   className="w-full"
-                  uploadFolder="doc-thumbnails"
                   title="Document Thumbnail"
+                  fileName="doc-thumbnail"
                 />
               </div>
 
-              {/* Document PDF File */}
-              {document.url && (
-                <div className="space-y-4">
-                  <h4 className="font-medium text-sm flex items-center">
-                    <FileText className="mr-2 h-4 w-4" />
-                    PDF Document
-                  </h4>
+              {/* Document PDF Upload & Viewer */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm flex items-center">
+                  <FileText className="mr-2 h-4 w-4" />
+                  PDF Document
+                </h4>
+                
+                {/* PDF Uploader */}
+                <PdfUploader
+                  currentPdf={uploadedPdf || document.url || undefined}
+                  onUploadSuccess={async (filePath) => {
+                    setUploadedPdf(filePath);
+                    try {
+                      await updateDocumentField(
+                        "url",
+                        filePath,
+                        "PDF document updated successfully!"
+                      );
+                    } catch {
+                      // Error already handled in updateDocumentField
+                      setUploadedPdf(null); // Reset on error
+                    }
+                  }}
+                  onUploadError={(error) => {
+                    toast.error(`PDF upload failed: ${error}`);
+                  }}
+                  title="Upload PDF Document"
+                />
+
+                {/* PDF Viewer - Only show if document has URL */}
+                {(uploadedPdf || document.url) && (
                   <PdfViewer
-                    pdfUrl={`${process.env.NEXT_PUBLIC_IK_URL_ENDPOINT || ""}${
-                      document.url
-                    }`}
+                    pdfUrl={
+                      ((uploadedPdf || document.url) || "").startsWith("http")
+                        ? (uploadedPdf || document.url) || ""
+                        : `${process.env.NEXT_PUBLIC_SERVER_URL || ""}/${
+                            uploadedPdf || document.url || ""
+                          }`
+                    }
                     title={document.title || "Document"}
                     className="w-full"
                   />
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -472,7 +483,7 @@ export default function DocumentDetailPage({
                     </div>
                   </div>
                   <Link
-                    href={`/livestreams/${document.livestream.slug}`}
+                    href={`${process.env.NEXT_PUBLIC_SERVER_URL || ""}/livestreams/${document.livestream.slug}`}
                     className="text-sm text-blue-600 hover:underline"
                   >
                     View Livestream

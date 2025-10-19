@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import ThumbnailUploader from "@/components/ThumbnailUploader";
+import LocalImageUploader from "@/components/LocalImageUploader";
 
 import {
   useGetUsersQuery,
@@ -689,17 +689,17 @@ export default function UsersPage() {
                 </div>
                 <div className="grid gap-2">
                   <Label>Avatar</Label>
-                  <ThumbnailUploader
-                    currentThumbnail={newUser.avatar}
-                    onUploadSuccess={(url) => {
-                      setNewUser({ ...newUser, avatar: url });
+                  <LocalImageUploader
+                    currentImage={newUser.avatar}
+                    onUploadSuccess={(response) => {
+                      setNewUser({ ...newUser, avatar: response.filePath });
                       toast.success("Avatar uploaded successfully");
                     }}
                     onUploadError={(error) => {
                       toast.error(`Failed to upload avatar: ${error}`);
                     }}
-                    uploadFolder="user-avatars"
                     title="User Avatar"
+                    fileName="user-avatar"
                     className="w-full"
                   />
                 </div>

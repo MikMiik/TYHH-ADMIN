@@ -16,10 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ImageKitUploader, {
+import LocalUploader, {
   UploadResponse,
   UploadOptions,
-} from "./ImagekitAuth";
+} from "./LocalUploader";
 
 interface DocumentFormData {
   title: string;
@@ -45,7 +45,6 @@ const EnhancedPdfUploader: React.FC<EnhancedPdfUploaderProps> = ({
   onDocumentCreate,
   onUploadError,
   className = "",
-  uploadFolder = "documents",
   title = "Upload PDF Document",
   livestreams = [],
   isCreating = false,
@@ -89,8 +88,7 @@ const EnhancedPdfUploader: React.FC<EnhancedPdfUploaderProps> = ({
     // Upload file
     uploadFile(file, {
       fileName: `document_${Date.now()}.pdf`,
-      folder: `/${uploadFolder}`,
-      tags: ["document", "pdf", uploadFolder],
+      maxSize: 50 * 1024 * 1024, // 50MB max for PDFs
     });
   };
 
@@ -170,10 +168,10 @@ const EnhancedPdfUploader: React.FC<EnhancedPdfUploaderProps> = ({
 
   return (
     <div className={className}>
-      <ImageKitUploader
+      <LocalUploader
         onUploadSuccess={(response) => {
-          if (response.url) {
-            handleUploadSuccess(response.url);
+          if (response.filePath) {
+            handleUploadSuccess(response.filePath);
           }
         }}
         onUploadError={(error) => {
@@ -385,7 +383,7 @@ const EnhancedPdfUploader: React.FC<EnhancedPdfUploaderProps> = ({
             )}
           </div>
         )}
-      </ImageKitUploader>
+      </LocalUploader>
     </div>
   );
 };

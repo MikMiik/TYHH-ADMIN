@@ -41,7 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import ThumbnailUploader from "@/components/ThumbnailUploader";
+import LocalImageUploader from "@/components/LocalImageUploader";
 import {
   useGetUserByUsernameQuery,
   useUpdateUserMutation,
@@ -194,40 +194,17 @@ export default function UserDetailPage() {
     }
   };
 
-  // Helper function to extract relative path from ImageKit URL
-  const extractImageKitPath = (url: string): string => {
-    try {
-      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
-      const urlObj = new URL(url);
-      // Extract path and remove leading slash
-      const path = urlObj.pathname.substring(1);
-      // Remove the ImageKit ID prefix if it exists
-      const pathParts = path.split("/");
-      if (pathParts.length > 1) {
-        // Skip the first part (ImageKit ID) and join the rest
-        return pathParts.slice(1).join("/");
-      }
-      return path;
-    } catch (error) {
-      console.error("Error extracting ImageKit path:", error);
-      // Fallback: return the original URL if parsing fails
-      return url;
-    }
-  };
-
   // Function to save only avatar after upload
-  const handleAvatarSave = async (avatarUrl: string) => {
+  const handleAvatarSave = async (filePath: string) => {
     try {
       if (!user?.id) {
         throw new Error("User ID not available");
       }
 
-      // Extract relative path from ImageKit URL
-      const relativePath = extractImageKitPath(avatarUrl);
-
+      // Use filePath directly from local upload response
       await updateUser({
         id: user.id,
-        data: { avatar: relativePath },
+        data: { avatar: filePath },
       }).unwrap();
 
       // Refetch user data to get updated information
@@ -258,9 +235,7 @@ export default function UserDetailPage() {
           username: formData.username,
           role: formData.role,
           activeKey: formData.activeKey,
-          avatar: formData.avatar
-            ? extractImageKitPath(formData.avatar)
-            : undefined, // Extract relative path
+          avatar: formData.avatar || undefined, // filePath is already relative
         };
 
       // Only include password if changing
@@ -845,16 +820,15 @@ export default function UserDetailPage() {
               <CardDescription>User profile picture</CardDescription>
             </CardHeader>
             <CardContent>
-              <ThumbnailUploader
-                currentThumbnail={formData.avatar}
-                onUploadSuccess={async (url) => {
-                  handleInputChange("avatar", url);
-                  await handleAvatarSave(url);
+              <LocalImageUploader
+                currentImage={formData.avatar}
+                onUploadSuccess={async (response) => {
+                  handleInputChange("avatar", response.filePath);
+                  await handleAvatarSave(response.filePath);
                 }}
                 onUploadError={(error) => {
                   toast.error(`Failed to upload avatar: ${error}`);
                 }}
-                uploadFolder="avatars"
                 title="User Avatar"
                 className="w-full"
                 fileName="avatar"

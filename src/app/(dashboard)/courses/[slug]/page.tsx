@@ -67,8 +67,8 @@ import {
 } from "@/lib/schemas/course";
 import { CourseOutline } from "@/lib/features/api/courseApi";
 import React from "react";
-import ThumbnailUploader from "@/components/ThumbnailUploader";
-import VideoUploader from "@/components/VideoUploader";
+import LocalImageUploader from "@/components/LocalImageUploader";
+import LocalVideoUploader from "@/components/LocalVideoUploader";
 import InlineEdit from "@/components/InlineEdit";
 import {
   DndContext,
@@ -648,26 +648,6 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     }
   };
 
-  // Helper function to extract relative path from ImageKit URL
-  const extractImageKitPath = (url: string): string => {
-    try {
-      // ImageKit URL format: https://ik.imagekit.io/your-id/folder/filename.ext
-      const urlObj = new URL(url);
-      // Extract path and remove leading slash
-      const path = urlObj.pathname.substring(1);
-      // Remove the ImageKit ID prefix if it exists
-      const pathParts = path.split("/");
-      if (pathParts.length > 1) {
-        // Skip the first part (ImageKit ID) and join the rest
-        return pathParts.slice(1).join("/");
-      }
-      return path;
-    } catch (error) {
-      console.error("Error extracting ImageKit path:", error);
-      // Fallback: return the original URL if parsing fails
-      return url;
-    }
-  };
 
   // Loading state
   if (isLoading) {
@@ -854,15 +834,14 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
 
               {/* Media Upload Section */}
               <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-stretch">
-                <ThumbnailUploader
-                  currentThumbnail={uploadedThumbnail || course.thumbnail}
-                  onUploadSuccess={async (url) => {
-                    setUploadedThumbnail(url);
+                <LocalImageUploader
+                  currentImage={uploadedThumbnail || course.thumbnail}
+                  onUploadSuccess={async (response) => {
+                    setUploadedThumbnail(response.filePath);
                     try {
-                      const relativePath = extractImageKitPath(url);
                       await updateCourseField(
                         "thumbnail",
-                        relativePath,
+                        response.filePath,
                         "Thumbnail updated successfully!"
                       );
                     } catch {
@@ -874,19 +853,18 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     toast.error(`Thumbnail upload failed: ${error}`);
                   }}
                   className="flex-1"
-                  uploadFolder="course-thumbnails"
                   title="Course Thumbnail"
+                  fileName="course-thumbnail"
                 />
 
-                <VideoUploader
+                <LocalVideoUploader
                   currentVideoUrl={uploadedVideo || course.introVideo}
-                  onUploadSuccess={async (url) => {
-                    setUploadedVideo(url);
+                  onUploadSuccess={async (response) => {
+                    setUploadedVideo(response.filePath);
                     try {
-                      const relativePath = extractImageKitPath(url);
                       await updateCourseField(
                         "introVideo",
-                        relativePath,
+                        response.filePath,
                         "Intro video updated successfully!"
                       );
                     } catch {
@@ -898,8 +876,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     toast.error(`Video upload failed: ${error}`);
                   }}
                   className="flex-1"
-                  uploadFolder="course-intro"
                   title="Intro Video"
+                  fileName="course-intro"
                 />
               </div>
             </CardContent>

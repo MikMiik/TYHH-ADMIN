@@ -82,8 +82,9 @@ const Navbar = () => {
               <Avatar>
                 <AvatarImage
                   src={
-                    `${process.env.NEXT_PUBLIC_IK_URL_ENDPOINT}${user.avatar}` ||
-                    "https://github.com/shadcn.png"
+                    user.avatar
+                      ? `${process.env.NEXT_PUBLIC_SERVER_URL}/${user.avatar}`
+                      : "https://github.com/shadcn.png"
                   }
                 />
                 <AvatarFallback>{getUserInitials()}</AvatarFallback>

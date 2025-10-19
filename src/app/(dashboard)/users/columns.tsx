@@ -28,7 +28,7 @@ import { useRouter } from "next/navigation";
 import { useDeleteUserMutation } from "@/lib/features/api/userApi";
 import { toast } from "sonner";
 import { useState } from "react";
-import ImageLazy from "@/components/ImageLazy";
+import LocalImageLazy from "@/components/LocalImageLazy";
 
 // Actions component for user table
 const UserActions = ({ user }: { user: UserType }) => {
@@ -133,7 +133,7 @@ export const userColumns: ColumnDef<UserType>[] = [
       return (
         <div className="flex items-center space-x-2">
           {user.avatar ? (
-            <ImageLazy
+            <LocalImageLazy
               src={user.avatar}
               alt={user.name}
               className="h-8 w-8 rounded-full object-cover"
