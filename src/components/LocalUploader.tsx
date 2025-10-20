@@ -6,7 +6,6 @@ import httpRequest from "@/lib/utils/httpRequest";
 // TypeScript interfaces
 interface UploadOptions {
   fileName?: string;
-  maxSize?: number;
 }
 
 interface UploadResponse {
@@ -61,15 +60,6 @@ const LocalUploader: React.FC<LocalUploaderProps> = ({
   ): Promise<UploadResponse | null> => {
     if (!file) {
       setError("No file provided");
-      return null;
-    }
-
-    // Validate file size (default 500MB for videos, can be overridden in options)
-    const maxSize = options.maxSize || 500 * 1024 * 1024; // 500MB default for videos
-    if (file.size > maxSize) {
-      const errorMsg = `File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`;
-      setError(errorMsg);
-      onUploadError?.(new Error(errorMsg));
       return null;
     }
 

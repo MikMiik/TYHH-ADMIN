@@ -51,13 +51,6 @@ const LocalVideoUploader: React.FC<LocalVideoUploaderProps> = ({
       return;
     }
 
-    // Validate file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (file.size > maxSize) {
-      onUploadError?.("Video size must be less than 500MB");
-      return;
-    }
-
     // Create preview URL
     const preview = URL.createObjectURL(file);
     setPreviewUrl(preview);
@@ -65,7 +58,6 @@ const LocalVideoUploader: React.FC<LocalVideoUploaderProps> = ({
     // Upload file
     uploadFile(file, {
       fileName: `${fileName}_${Date.now()}.${file.name.split(".").pop()}`,
-      maxSize: maxSize,
     });
   };
 

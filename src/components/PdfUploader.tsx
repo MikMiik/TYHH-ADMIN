@@ -42,19 +42,12 @@ const PdfUploader: React.FC<PdfUploaderProps> = ({
       return;
     }
 
-    // Validate file size (max 50MB for documents)
-    if (file.size > 50 * 1024 * 1024) {
-      onUploadError?.("PDF size must be less than 50MB");
-      return;
-    }
-
     // Set uploading file for display
     setUploadingFile(file);
 
     // Upload file
     uploadFile(file, {
       fileName: `document_${Date.now()}.pdf`,
-      maxSize: 50 * 1024 * 1024, // 50MB max for PDFs
     });
   };
 
