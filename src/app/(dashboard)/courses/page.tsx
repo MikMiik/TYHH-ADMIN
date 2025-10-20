@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import {
   useGetCoursesQuery,
   useCreateCourseMutation,
+  useBulkDeleteCoursesMutation,
   type Course,
 } from "@/lib/features/api/courseApi";
 import { useGetUsersQuery } from "@/lib/features/api/userApi";
@@ -90,6 +91,7 @@ export default function CoursesPage() {
 
   // Create course mutation
   const [createCourse, { isLoading: isCreating }] = useCreateCourseMutation();
+  const [bulkDeleteCourses, { isLoading: isDeleting }] = useBulkDeleteCoursesMutation();
 
   // Transform data similar to users page
   const courses = useMemo(() => {
@@ -221,6 +223,28 @@ export default function CoursesPage() {
           : error && typeof error === "object" && "message" in error
           ? String((error as Record<string, unknown>).message)
           : "Failed to create course";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleBulkDelete = async (selectedIds: number[]) => {
+    try {
+      await bulkDeleteCourses(selectedIds).unwrap();
+      toast.success(`Successfully deleted ${selectedIds.length} course(s)`);
+      refetch();
+    } catch (error: unknown) {
+      console.error("Bulk delete error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to delete courses";
       toast.error(errorMessage);
     }
   };
@@ -460,6 +484,8 @@ export default function CoursesPage() {
             setPage(newState.pageIndex + 1);
           }
         }}
+        onBulkDelete={handleBulkDelete}
+        isDeleting={isDeleting}
       />
 
       {/* Create Course Dialog */}

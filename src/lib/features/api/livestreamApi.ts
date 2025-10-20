@@ -145,6 +145,18 @@ export const livestreamApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // Bulk delete livestreams
+    bulkDeleteLivestreams: builder.mutation<{ deletedCount: number; message: string }, number[]>({
+      query: (ids) => ({
+        url: '/livestreams/bulk-delete',
+        method: 'POST',
+        body: { ids },
+      }),
+      transformResponse: (response: ApiResponse<{ deletedCount: number; message: string }>) => 
+        response.data || { deletedCount: 0, message: 'No livestreams deleted' },
+      invalidatesTags: ['Livestream'],
+    }),
+
     // Lấy analytics livestream 
     getLivestreamAnalytics: builder.query<{
       total: number;
@@ -188,6 +200,7 @@ export const {
   useCreateLivestreamMutation,
   useUpdateLivestreamMutation,
   useDeleteLivestreamMutation,
+  useBulkDeleteLivestreamsMutation,
   useGetLivestreamAnalyticsQuery,
   useReorderLivestreamsMutation,
 } = livestreamApi;

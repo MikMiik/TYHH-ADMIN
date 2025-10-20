@@ -162,6 +162,18 @@ export const courseOutlineApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // Bulk delete course outlines
+    bulkDeleteCourseOutlines: builder.mutation<{ deletedCount: number; message: string }, number[]>({
+      query: (ids) => ({
+        url: '/course-outlines/bulk-delete',
+        method: 'POST',
+        body: { ids },
+      }),
+      transformResponse: (response: ApiResponse<{ deletedCount: number; message: string }>) => 
+        response.data || { deletedCount: 0, message: 'No course outlines deleted' },
+      invalidatesTags: ['CourseOutline'],
+    }),
+
     // Reorder course outlines
     reorderCourseOutlines: builder.mutation<{ message: string }, { courseId: number; data: ReorderOutlinesData }>({
       query: ({ courseId, data }) => ({
@@ -184,5 +196,6 @@ export const {
   useCreateCourseOutlineMutation,
   useUpdateCourseOutlineMutation,
   useDeleteCourseOutlineMutation,
+  useBulkDeleteCourseOutlinesMutation,
   useReorderCourseOutlinesMutation,
 } = courseOutlineApi;

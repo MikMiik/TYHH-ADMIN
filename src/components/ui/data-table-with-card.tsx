@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/table";
 import { DataTablePagination } from "@/components/TablePagination";
 import { DataTableCard } from "@/components/ui/data-table-card";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface DataTableProps<TData, TValue> {
@@ -37,6 +39,9 @@ interface DataTableProps<TData, TValue> {
   // New props for styling control
   showBorder?: boolean;
   className?: string;
+  // Bulk delete functionality
+  onBulkDelete?: (selectedIds: number[]) => void;
+  isDeleting?: boolean;
 }
 
 export function DataTableWithCard<TData, TValue>({
@@ -48,6 +53,8 @@ export function DataTableWithCard<TData, TValue>({
   onPaginationChange,
   showBorder = false,
   className = "",
+  onBulkDelete,
+  isDeleting = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState({});
@@ -88,6 +95,21 @@ export function DataTableWithCard<TData, TValue>({
     </span>
   );
 
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedCount = selectedRows.length;
+
+  const handleBulkDelete = () => {
+    if (!onBulkDelete || selectedCount === 0) return;
+    
+    const selectedIds = selectedRows.map((row) => {
+      const rowData = row.original as { id: number };
+      return rowData.id;
+    });
+    
+    onBulkDelete(selectedIds);
+    setRowSelection({});
+  };
+
   return (
     <DataTableCard error={errorElement} className={className}>
       <div
@@ -95,6 +117,22 @@ export function DataTableWithCard<TData, TValue>({
           showBorder ? "overflow-hidden rounded-md border" : "overflow-hidden"
         }
       >
+        {onBulkDelete && selectedCount > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/50">
+            <div className="text-sm text-muted-foreground">
+              {selectedCount} row(s) selected
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {isDeleting ? "Deleting..." : `Delete ${selectedCount} item(s)`}
+            </Button>
+          </div>
+        )}
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

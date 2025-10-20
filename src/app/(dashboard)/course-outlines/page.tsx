@@ -38,6 +38,7 @@ import {
   useGetCourseOutlinesQuery,
   useCreateCourseOutlineMutation,
   useDeleteCourseOutlineMutation,
+  useBulkDeleteCourseOutlinesMutation,
 } from "@/lib/features/api/courseOutlineApi";
 import { useGetCoursesQuery } from "@/lib/features/api/courseApi";
 
@@ -76,8 +77,10 @@ export default function CourseOutlinesPage() {
 
   const [createOutline, { isLoading: isCreating }] =
     useCreateCourseOutlineMutation();
-  const [deleteOutline, { isLoading: isDeleting }] =
+  const [deleteOutline, { isLoading: isSingleDeleting }] =
     useDeleteCourseOutlineMutation();
+  const [bulkDeleteOutlines, { isLoading: isDeleting }] =
+    useBulkDeleteCourseOutlinesMutation();
 
   // Extract data from API response with proper memoization
   const outlines = useMemo(
@@ -166,6 +169,19 @@ export default function CourseOutlinesPage() {
   const handleRefresh = () => {
     refetch();
     toast.success("Data refreshed");
+  };
+
+  const handleBulkDelete = async (selectedIds: number[]) => {
+    try {
+      await bulkDeleteOutlines(selectedIds).unwrap();
+      toast.success(`Successfully deleted ${selectedIds.length} course outline(s)`);
+      refetch();
+    } catch (error: unknown) {
+      const errorMessage =
+        (error as { data?: { message?: string } })?.data?.message ||
+        "Failed to delete course outlines";
+      toast.error(errorMessage);
+    }
   };
 
   return (
@@ -304,6 +320,8 @@ export default function CourseOutlinesPage() {
         }}
         loading={isLoading}
         error={error ? "Failed to load course outlines" : null}
+        onBulkDelete={handleBulkDelete}
+        isDeleting={isDeleting}
       />
 
       {/* Create Dialog */}

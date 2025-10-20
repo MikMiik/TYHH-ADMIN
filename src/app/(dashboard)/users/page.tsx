@@ -37,6 +37,7 @@ import LocalImageUploader from "@/components/LocalImageUploader";
 import {
   useGetUsersQuery,
   useCreateUserMutation,
+  useBulkDeleteUsersMutation,
 } from "@/lib/features/api/userApi";
 import { createUserSchema, type CreateUserForm } from "@/lib/schemas/user";
 
@@ -107,6 +108,7 @@ export default function UsersPage() {
   });
 
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
+  const [bulkDeleteUsers, { isLoading: isDeleting }] = useBulkDeleteUsersMutation();
 
   // Use real data from API
   const rawUsers = usersData?.items || [];
@@ -268,6 +270,28 @@ export default function UsersPage() {
       facebook: "",
       avatar: "",
     });
+  };
+
+  const handleBulkDelete = async (selectedIds: number[]) => {
+    try {
+      await bulkDeleteUsers(selectedIds).unwrap();
+      toast.success(`Successfully deleted ${selectedIds.length} user(s)`);
+      refetch();
+    } catch (error: unknown) {
+      console.error("Bulk delete error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to delete users";
+      toast.error(errorMessage);
+    }
   };
 
   // Stats calculation - ONLY use backend status field, NO activeKey
@@ -491,6 +515,8 @@ export default function UsersPage() {
         columns={userColumns}
         data={displayData}
         loading={isLoading}
+        onBulkDelete={handleBulkDelete}
+        isDeleting={isDeleting}
       />
 
       {/* Add User Modal */}

@@ -175,6 +175,18 @@ export const documentApi = baseApi.injectEndpoints({
       ],
     }),
 
+    // Bulk delete documents
+    bulkDeleteDocuments: builder.mutation<{ deletedCount: number; message: string }, number[]>({
+      query: (ids) => ({
+        url: '/documents/bulk-delete',
+        method: 'POST',
+        body: { ids },
+      }),
+      transformResponse: (response: ApiResponse<{ deletedCount: number; message: string }>) => 
+        response.data || { deletedCount: 0, message: 'No documents deleted' },
+      invalidatesTags: ['Document'],
+    }),
+
     // Increment download count
     incrementDownloadCount: builder.mutation<Document, number>({
       query: (id) => ({
@@ -213,6 +225,7 @@ export const {
   useCreateDocumentMutation,
   useUpdateDocumentMutation,
   useDeleteDocumentMutation,
+  useBulkDeleteDocumentsMutation,
   useIncrementDownloadCountMutation,
   useGetDocumentAnalyticsQuery,
 } = documentApi;

@@ -37,6 +37,7 @@ import {
   useGetLivestreamsQuery,
   useCreateLivestreamMutation,
   useDeleteLivestreamMutation,
+  useBulkDeleteLivestreamsMutation,
   type Livestream,
 } from "@/lib/features/api/livestreamApi";
 import { useGetCoursesQuery } from "@/lib/features/api/courseApi";
@@ -86,8 +87,10 @@ export default function LivestreamsPage() {
     useCreateLivestreamMutation();
 
   // Delete livestream mutation
-  const [deleteLivestream, { isLoading: isDeleting }] =
+  const [deleteLivestream, { isLoading: isSingleDeleting }] =
     useDeleteLivestreamMutation();
+  const [bulkDeleteLivestreams, { isLoading: isDeleting }] =
+    useBulkDeleteLivestreamsMutation();
 
   // Transform data similar to courses page
   const livestreams = useMemo(() => {
@@ -267,6 +270,28 @@ export default function LivestreamsPage() {
           : error && typeof error === "object" && "message" in error
           ? String((error as Record<string, unknown>).message)
           : "Failed to delete livestream";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleBulkDelete = async (selectedIds: number[]) => {
+    try {
+      await bulkDeleteLivestreams(selectedIds).unwrap();
+      toast.success(`Successfully deleted ${selectedIds.length} livestream(s)`);
+      refetch();
+    } catch (error: unknown) {
+      console.error("Bulk delete error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to delete livestreams";
       toast.error(errorMessage);
     }
   };
@@ -492,6 +517,8 @@ export default function LivestreamsPage() {
             setPage(newState.pageIndex + 1);
           }
         }}
+        onBulkDelete={handleBulkDelete}
+        isDeleting={isDeleting}
       />
 
       {/* Create Livestream Dialog */}

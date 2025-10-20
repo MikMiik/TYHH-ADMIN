@@ -127,6 +127,18 @@ export const userApi = baseApi.injectEndpoints({
       invalidatesTags: (result, error, id) => [{ type: 'User', id }, 'User'],
     }),
 
+    // Bulk delete users
+    bulkDeleteUsers: builder.mutation<{ deletedCount: number; message: string }, number[]>({
+      query: (ids) => ({
+        url: '/users/bulk-delete',
+        method: 'POST',
+        body: { ids },
+      }),
+      transformResponse: (response: ApiResponse<{ deletedCount: number; message: string }>) => 
+        response.data || { deletedCount: 0, message: 'No users deleted' },
+      invalidatesTags: ['User'],
+    }),
+
     // Toggle user status (active/inactive)
     toggleUserStatus: builder.mutation<User, { id: number | string; activeKey: boolean }>({
       query: ({ id, activeKey }) => ({
@@ -196,6 +208,7 @@ export const {
   useCreateUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useBulkDeleteUsersMutation,
   useToggleUserStatusMutation,
   useBulkUpdateUsersMutation,
   useSetUserKeyMutation,

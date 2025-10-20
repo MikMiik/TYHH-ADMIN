@@ -171,6 +171,18 @@ export const courseApi = baseApi.injectEndpoints({
       invalidatesTags: (result, error, id) => [{ type: 'Course', id }, 'Course'],
     }),
 
+    // Bulk delete courses
+    bulkDeleteCourses: builder.mutation<{ deletedCount: number; message: string }, number[]>({
+      query: (ids) => ({
+        url: '/courses/bulk-delete',
+        method: 'POST',
+        body: { ids },
+      }),
+      transformResponse: (response: ApiResponse<{ deletedCount: number; message: string }>) => 
+        response.data || { deletedCount: 0, message: 'No courses deleted' },
+      invalidatesTags: ['Course'],
+    }),
+
     // Lấy danh sách topics
     getTopics: builder.query<Topic[], void>({
       query: () => '/topics',
@@ -265,6 +277,7 @@ export const {
   useCreateCourseMutation,
   useUpdateCourseMutation,
   useDeleteCourseMutation,
+  useBulkDeleteCoursesMutation,
   useGetTopicsQuery,
   useCreateTopicMutation,
   useAssignCourseTopicsMutation,

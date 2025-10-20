@@ -1,6 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { MoreHorizontal, FileText, Eye, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -25,6 +26,28 @@ const getFileIcon = () => {
 
 // Document columns based on actual BE model
 export const documentColumns: ColumnDef<Document>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "title",
     header: "Title",
@@ -94,7 +117,9 @@ export const documentColumns: ColumnDef<Document>[] = [
     cell: ({ row }) => {
       const downloadCount = row.getValue("downloadCount") as number;
       return (
-        <div className="font-medium">{(downloadCount ?? 0).toLocaleString()}</div>
+        <div className="font-medium">
+          {(downloadCount ?? 0).toLocaleString()}
+        </div>
       );
     },
   },

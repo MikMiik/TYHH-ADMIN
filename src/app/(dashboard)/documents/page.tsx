@@ -39,6 +39,7 @@ import {
   useGetDocumentsQuery,
   useCreateDocumentMutation,
   useDeleteDocumentMutation,
+  useBulkDeleteDocumentsMutation,
   type Document,
 } from "@/lib/features/api/documentApi";
 import { useGetLivestreamsQuery } from "@/lib/features/api/livestreamApi";
@@ -91,8 +92,10 @@ export default function DocumentsPage() {
     useCreateDocumentMutation();
 
   // Delete document mutation
-  const [deleteDocument, { isLoading: isDeleting }] =
+  const [deleteDocument, { isLoading: isSingleDeleting }] =
     useDeleteDocumentMutation();
+  const [bulkDeleteDocuments, { isLoading: isDeleting }] =
+    useBulkDeleteDocumentsMutation();
 
   // Transform data similar to livestreams page
   const documents = useMemo(() => {
@@ -296,6 +299,28 @@ export default function DocumentsPage() {
           : error && typeof error === "object" && "message" in error
           ? String((error as Record<string, unknown>).message)
           : "Failed to delete document";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleBulkDelete = async (selectedIds: number[]) => {
+    try {
+      await bulkDeleteDocuments(selectedIds).unwrap();
+      toast.success(`Successfully deleted ${selectedIds.length} document(s)`);
+      refetch();
+    } catch (error: unknown) {
+      console.error("Bulk delete error:", error);
+      const errorMessage =
+        error &&
+        typeof error === "object" &&
+        "data" in error &&
+        error.data &&
+        typeof error.data === "object" &&
+        "message" in error.data
+          ? String((error.data as Record<string, unknown>).message)
+          : error && typeof error === "object" && "message" in error
+          ? String((error as Record<string, unknown>).message)
+          : "Failed to delete documents";
       toast.error(errorMessage);
     }
   };
@@ -566,6 +591,8 @@ export default function DocumentsPage() {
             setPage(newState.pageIndex + 1);
           }
         }}
+        onBulkDelete={handleBulkDelete}
+        isDeleting={isDeleting}
       />
 
       {/* Create Document Dialog */}
