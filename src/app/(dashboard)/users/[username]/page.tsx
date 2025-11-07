@@ -10,6 +10,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  Shuffle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -210,6 +211,52 @@ export default function UserDetailPage() {
       }
       return false;
     }
+  };
+
+  // Function to generate strong random password
+  const generateStrongPassword = () => {
+    const length = 16;
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const numbers = "0123456789";
+    const special = "!@#$&*<>?";
+    
+    const allChars = uppercase + lowercase + numbers + special;
+    
+    // Ensure at least one character from each category
+    let password = "";
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+    
+    // Fill the rest randomly
+    for (let i = password.length; i < length; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    return password;
+  };
+
+  // Function to handle random password generation
+  const handleGenerateRandomPassword = () => {
+    const newPassword = generateStrongPassword();
+    setFormData(prev => ({
+      ...prev,
+      password: newPassword,
+      confirmPassword: newPassword,
+    }));
+    // Clear password validation errors
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.password;
+      delete newErrors.confirmPassword;
+      return newErrors;
+    });
+    toast.success("Strong password generated successfully");
   };
 
   // Function to save only avatar after upload
@@ -794,70 +841,87 @@ export default function UserDetailPage() {
                     </div>
 
                     {passwordMode === "change" && (
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="password">New Password</Label>
-                          <div className="relative">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm text-muted-foreground">
+                            Set a new password for the user
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateRandomPassword}
+                            className="gap-2"
+                          >
+                            <Shuffle className="h-4 w-4" />
+                            Generate Strong Password
+                          </Button>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="password">New Password</Label>
+                            <div className="relative">
+                              <Input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                value={formData.password || ""}
+                                onChange={(e) =>
+                                  handleInputChange("password", e.target.value)
+                                }
+                                placeholder="Enter new password"
+                                className={
+                                  validationErrors.password
+                                    ? "border-destructive"
+                                    : ""
+                                }
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                            {validationErrors.password && (
+                              <p className="text-sm text-destructive">
+                                {validationErrors.password}
+                              </p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="confirmPassword">
+                              Confirm Password
+                            </Label>
                             <Input
-                              id="password"
+                              id="confirmPassword"
                               type={showPassword ? "text" : "password"}
-                              value={formData.password || ""}
+                              value={formData.confirmPassword || ""}
                               onChange={(e) =>
-                                handleInputChange("password", e.target.value)
+                                handleInputChange(
+                                  "confirmPassword",
+                                  e.target.value
+                                )
                               }
-                              placeholder="Enter new password"
+                              placeholder="Confirm new password"
                               className={
-                                validationErrors.password
+                                validationErrors.confirmPassword
                                   ? "border-destructive"
                                   : ""
                               }
                             />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? (
-                                <EyeOff className="h-4 w-4" />
-                              ) : (
-                                <Eye className="h-4 w-4" />
-                              )}
-                            </Button>
+                            {validationErrors.confirmPassword && (
+                              <p className="text-sm text-destructive">
+                                {validationErrors.confirmPassword}
+                              </p>
+                            )}
                           </div>
-                          {validationErrors.password && (
-                            <p className="text-sm text-destructive">
-                              {validationErrors.password}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirmPassword">
-                            Confirm Password
-                          </Label>
-                          <Input
-                            id="confirmPassword"
-                            type={showPassword ? "text" : "password"}
-                            value={formData.confirmPassword || ""}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "confirmPassword",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Confirm new password"
-                            className={
-                              validationErrors.confirmPassword
-                                ? "border-destructive"
-                                : ""
-                            }
-                          />
-                          {validationErrors.confirmPassword && (
-                            <p className="text-sm text-destructive">
-                              {validationErrors.confirmPassword}
-                            </p>
-                          )}
                         </div>
                       </div>
                     )}
