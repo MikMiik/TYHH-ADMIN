@@ -52,7 +52,6 @@ export default function LoginPage() {
     }
   };
 
-
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -61,7 +60,6 @@ export default function LoginPage() {
       rememberMe: false,
     },
   });
-
 
   const onSubmit = async (data: LoginFormData) => {
     setErrorMessage(null);
@@ -166,20 +164,31 @@ export default function LoginPage() {
                 control={form.control}
                 name="rememberMe"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2">
-                    <FormControl>
-                      <input
-                        id="remember"
-                        type="checkbox"
-                        className="rounded border border-input bg-background"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormLabel htmlFor="remember" className="text-muted-foreground cursor-pointer mb-0">
-                      Remember me
-                    </FormLabel>
+                  <FormItem className="flex flex-row items-center justify-between space-x-2">
+                    <div className="flex items-center space-x-2">
+                      <FormControl>
+                        <input
+                          id="remember"
+                          type="checkbox"
+                          className="rounded border border-input bg-background"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormLabel
+                        htmlFor="remember"
+                        className="text-muted-foreground cursor-pointer mb-0"
+                      >
+                        Remember me
+                      </FormLabel>
+                    </div>
+                    <a
+                      href="/forgot-password"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </a>
                   </FormItem>
                 )}
               />

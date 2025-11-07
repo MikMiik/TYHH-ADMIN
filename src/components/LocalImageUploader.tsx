@@ -22,7 +22,7 @@ interface LocalImageUploaderProps {
 /**
  * LocalImageUploader - Image upload component using local storage
  * Replaces ImageKit ThumbnailUploader with local file upload
- * 
+ *
  * Usage:
  * <LocalImageUploader
  *   currentImage="uploads/image.jpg"
@@ -73,7 +73,7 @@ const LocalImageUploader: React.FC<LocalImageUploaderProps> = ({
 
   // Construct current image URL
   const currentImageUrl = currentImage
-    ? currentImage.startsWith("http")
+    ? currentImage.startsWith("http") || currentImage.startsWith("https")
       ? currentImage
       : `${process.env.NEXT_PUBLIC_SERVER_URL}/${currentImage}`
     : null;
@@ -211,4 +211,3 @@ const LocalImageUploader: React.FC<LocalImageUploaderProps> = ({
 };
 
 export default LocalImageUploader;
-
