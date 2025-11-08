@@ -629,31 +629,6 @@ export default function CoursesPage() {
                   />
                 </div>
 
-                {/* Topic */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="topicId" className="text-right">
-                    Topic
-                  </Label>
-                  <Select
-                    value={formData.topicId}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, topicId: value }))
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select topic" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">No topic assigned</SelectItem>
-                      {coursesResponse?.topics?.map((topic) => (
-                        <SelectItem key={topic.id} value={topic.id.toString()}>
-                          {topic.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 {/* Content */}
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label htmlFor="content" className="text-right mt-2">
