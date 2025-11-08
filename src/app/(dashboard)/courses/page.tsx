@@ -91,7 +91,8 @@ export default function CoursesPage() {
 
   // Create course mutation
   const [createCourse, { isLoading: isCreating }] = useCreateCourseMutation();
-  const [bulkDeleteCourses, { isLoading: isDeleting }] = useBulkDeleteCoursesMutation();
+  const [bulkDeleteCourses, { isLoading: isDeleting }] =
+    useBulkDeleteCoursesMutation();
 
   // Transform data similar to users page
   const courses = useMemo(() => {
@@ -168,14 +169,17 @@ export default function CoursesPage() {
         price: formData.isFree
           ? undefined
           : formData.price
-          ? parseFloat(formData.price)
-          : undefined,
+            ? parseFloat(formData.price)
+            : undefined,
         discount: formData.discount ? parseFloat(formData.discount) : undefined,
         isFree: formData.isFree,
         purpose: formData.purpose.trim() || undefined,
-        group: formData.topicId && formData.topicId !== "0" 
-          ? coursesResponse?.topics?.find(topic => topic.id.toString() === formData.topicId)?.title
-          : undefined,
+        group:
+          formData.topicId && formData.topicId !== "0"
+            ? coursesResponse?.topics?.find(
+                (topic) => topic.id.toString() === formData.topicId
+              )?.title
+            : undefined,
         content: formData.content.trim() || undefined,
       };
 
@@ -221,8 +225,8 @@ export default function CoursesPage() {
         "message" in error.data
           ? String((error.data as Record<string, unknown>).message)
           : error && typeof error === "object" && "message" in error
-          ? String((error as Record<string, unknown>).message)
-          : "Failed to create course";
+            ? String((error as Record<string, unknown>).message)
+            : "Failed to create course";
       toast.error(errorMessage);
     }
   };
@@ -243,8 +247,8 @@ export default function CoursesPage() {
         "message" in error.data
           ? String((error.data as Record<string, unknown>).message)
           : error && typeof error === "object" && "message" in error
-          ? String((error as Record<string, unknown>).message)
-          : "Failed to delete courses";
+            ? String((error as Record<string, unknown>).message)
+            : "Failed to delete courses";
       toast.error(errorMessage);
     }
   };
@@ -325,8 +329,8 @@ export default function CoursesPage() {
               {isLoading
                 ? "..."
                 : typeof stats.total === "number"
-                ? stats.total
-                : 0}
+                  ? stats.total
+                  : 0}
             </div>
           </CardContent>
         </Card>
@@ -339,8 +343,8 @@ export default function CoursesPage() {
               {isLoading
                 ? "..."
                 : typeof stats.free === "number"
-                ? stats.free
-                : 0}
+                  ? stats.free
+                  : 0}
             </div>
           </CardContent>
         </Card>
@@ -353,8 +357,8 @@ export default function CoursesPage() {
               {isLoading
                 ? "..."
                 : typeof stats.paid === "number"
-                ? stats.paid
-                : 0}
+                  ? stats.paid
+                  : 0}
             </div>
           </CardContent>
         </Card>
@@ -464,8 +468,8 @@ export default function CoursesPage() {
                 typeof error === "string"
                   ? error
                   : error && typeof error === "object" && "message" in error
-                  ? (error as { message: string }).message
-                  : "An unexpected error occurred"
+                    ? (error as { message: string }).message
+                    : "An unexpected error occurred"
               )
             : null
         }
@@ -512,7 +516,10 @@ export default function CoursesPage() {
                     className="col-span-3"
                     value={formData.title}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, title: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -534,31 +541,6 @@ export default function CoursesPage() {
                       }))
                     }
                   />
-                </div>
-
-                {/* Teacher */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="teacherId" className="text-right">
-                    Teacher
-                  </Label>
-                  <Select
-                    value={formData.teacherId}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, teacherId: value }))
-                    }
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select teacher" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">No teacher assigned</SelectItem>
-                      {teachersResponse?.items?.map((teacher) => (
-                        <SelectItem key={teacher.id} value={teacher.id.toString()}>
-                          {teacher.name} ({teacher.email})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 {/* Is Free Checkbox */}
@@ -639,7 +621,10 @@ export default function CoursesPage() {
                     className="col-span-3"
                     value={formData.purpose}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, purpose: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        purpose: e.target.value,
+                      }))
                     }
                   />
                 </div>
@@ -681,7 +666,10 @@ export default function CoursesPage() {
                     rows={3}
                     value={formData.content}
                     onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, content: e.target.value }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
                     }
                   />
                 </div>
